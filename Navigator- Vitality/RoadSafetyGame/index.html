@@ -1,91 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Cross Safe — Road Safety Awareness Game</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<title>Navigator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="game-container"></div>
 
-  <!-- HUD -->
-  <div id="hud" class="hidden">
-    <div class="hud-sign hud-score">
-      <span class="hud-label">Distance</span>
-      <span id="score" class="hud-value">0</span>
-    </div>
-    <div class="hud-sign hud-rating">
-      <span class="hud-label">Safety rating</span>
-      <span id="rating" class="hud-value rating-A">A</span>
-    </div>
-    <div id="signal-indicator" class="hud-sign hud-signal hidden">
-      <span class="hud-label">Next crossing</span>
-      <span id="signal-state" class="hud-value">—</span>
-    </div>
+<div id="canvasHolder"></div>
+
+<div id="hud">
+  <div>
+    <div id="score">0</div>
+    <div id="best">BEST 0</div>
   </div>
+</div>
 
-  <!-- Toast for in-game safety alerts -->
-  <div id="toast" class="hidden"></div>
+<div id="crossHint"><span class="key">E</span>Press to cross</div>
 
-  <!-- Start screen -->
-  <div id="start-screen" class="overlay">
-    <div class="sign-panel">
-      <div class="zebra-strip" aria-hidden="true"></div>
-      <h1>CROSS SAFE</h1>
-      <p class="tagline">A road safety awareness game</p>
-      <p class="instructions">
-        Get as far as you can — but the score that matters is your
-        <strong>Safety rating</strong>. Cross at zebra crossings when the
-        signal shows <span class="walk-word">WALK</span>. Jaywalking and
-        red-light crossings are dangerous, and they cost you.
-      </p>
-      <div class="controls-hint">
-        <span>Move: Arrow keys / WASD / swipe</span>
+<div id="buddyAgent">
+  <div class="buddyAgentAvatar">🦝</div>
+  <div class="buddyAgentBubble">
+    <div class="buddyAgentName">Ranger Zeb</div>
+    <div id="buddyAgentText" class="buddyAgentText">Look both ways and cross safely!</div>
+  </div>
+</div>
+
+<div id="quizOverlay" style="display:none;">
+  <div class="panel quizPanel">
+    <div class="buddyRow">
+      <div class="buddyAvatar">🦝</div>
+      <div class="buddyNameCol">
+        <div class="buddyName">Ranger Zeb</div>
+        <div id="quizContextTag" class="quizTag">SAFETY CHECK</div>
       </div>
-      <button id="start-btn" class="big-btn">Start crossing</button>
-      <p class="fact" id="start-fact"></p>
-      <div class="zebra-strip" aria-hidden="true"></div>
+    </div>
+    <div id="quizQuestion" class="quizQuestion">Question goes here</div>
+    <div id="quizOptions" class="quizOptions"></div>
+    <div id="quizFeedback" class="quizFeedback"></div>
+  </div>
+</div>
+
+<div id="startScreen">
+  <div class="panel">
+    <h1 class="navTitle">Nav<span class="pin-i">ı</span>gator</h1>
+    <div class="sub">Wide roads have lights. Small roads have zebra crossings. Don't get squashed.</div>
+    <button class="playBtn" id="startBtn">PLAY</button>
+    <div class="howto">
+      Move with <span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span>
+      or <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span><br>
+      At a light: reach it, press <span class="key">E</span>, then wait for GREEN to cross.<br>
+      Stepping onto a light-controlled road early is fatal - stay in the lane too.<br>
+      At a zebra crossing: stay beyond the striped lane, wait for the car to fully stop.
     </div>
   </div>
+</div>
 
-  <!-- Game over screen -->
-  <div id="gameover-screen" class="overlay hidden">
-    <div class="sign-panel danger">
-      <div class="zebra-strip" aria-hidden="true"></div>
-      <h2 id="death-title">Accident</h2>
-      <p id="death-cause" class="death-cause"></p>
-      <div class="lesson-box">
-        <span class="lesson-label">Safety lesson</span>
-        <p id="death-lesson"></p>
+<div id="gameOverScreen" style="display:none;">
+  <div class="panel">
+    <h1>SPLAT!</h1>
+    <div class="sub">Nice run, champ.</div>
+    <div class="bigScore" id="finalScore">0</div>
+    <div class="buddyRow buddyRowReport">
+      <div class="buddyAvatar">🦝</div>
+      <div class="buddyNameCol">
+        <div class="buddyName">Ranger Zeb says</div>
+        <div id="buddyTip" class="buddyTip">Stay alert out there!</div>
       </div>
-      <div class="stats-grid">
-        <div class="stat"><span id="stat-distance" class="stat-num">0</span><span class="stat-label">rows travelled</span></div>
-        <div class="stat"><span id="stat-safe" class="stat-num">0</span><span class="stat-label">safe crossings</span></div>
-        <div class="stat"><span id="stat-jaywalk" class="stat-num">0</span><span class="stat-label">jaywalks</span></div>
-        <div class="stat"><span id="stat-redlight" class="stat-num">0</span><span class="stat-label">red-light crossings</span></div>
-      </div>
-      <p class="final-rating">Final safety rating: <span id="final-rating" class="rating-A">A</span></p>
-      <p class="fact" id="death-fact"></p>
-      <button id="restart-btn" class="big-btn">Try again — safely</button>
-      <div class="zebra-strip" aria-hidden="true"></div>
     </div>
+    <button class="playBtn" id="retryBtn">PLAY AGAIN</button>
   </div>
+</div>
 
-  <!-- Mobile controls -->
-  <div id="dpad" class="hidden">
-    <button data-dir="forward" aria-label="Move forward">▲</button>
-    <div class="dpad-row">
-      <button data-dir="left" aria-label="Move left">◀</button>
-      <button data-dir="back" aria-label="Move back">▼</button>
-      <button data-dir="right" aria-label="Move right">▶</button>
-    </div>
-  </div>
+<div id="touchControls">
+  <button class="tbtn" id="btnUp">↑</button>
+  <button class="tbtn" id="btnLeft">←</button>
+  <button class="tbtn" id="btnDown">↓</button>
+  <button class="tbtn" id="btnRight">→</button>
+</div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="app.js"></script>
+<button id="btnCross">CROSS</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
