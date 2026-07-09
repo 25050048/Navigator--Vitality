@@ -1,0 +1,121 @@
+{
+  "name": "Game Completion Certificate",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "game-complete",
+        "responseMode": "responseNode",
+        "options": { "allowedOrigins": "*" }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, -96],
+      "id": "432bb841-c644-4e8d-b959-b33e2b5b6af3",
+      "name": "Webhook",
+      "webhookId": "a230be17-d9ab-4411-b788-6b04c4c8adad"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+          "conditions": [
+            {
+              "id": "65cfe23f-3da6-4cd4-847c-9f11e12c813e",
+              "leftValue": "={{ $json.body.secret }}",
+              "rightValue": "mySecret123",
+              "operator": { "type": "string", "operation": "equals", "name": "filter.operator.equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [224, -96],
+      "id": "2cd08930-5805-4e4d-9d54-59664fcdeaaa",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{  $('Webhook').item.json.body.email  }}",
+        "subject": "Your Certificate of Completion",
+        "message": "={{ $json.text }}\n\nWell done, and keep up the great road safety habits!",
+        "options": {},
+        "resource": "message",
+        "operation": "send"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [704, -112],
+      "id": "ae6f2dfa-57fa-4501-8a7b-595d315ddfcb",
+      "name": "Send a message",
+      "webhookId": "85d50a6e-68b6-4ba5-850c-5da42e66290a",
+      "credentials": {
+        "gmailOAuth2": { "id": "aFPzW2Xh2LDSW66C", "name": "Gmail account 144" }
+      }
+    },
+    {
+      "parameters": { "options": {} },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [896, -96],
+      "id": "5673bafe-bb91-4260-87cb-5d8ee7a55d62",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Congratulate ' + $('Webhook').item.json.body.name + ' on completing the ' + ($('Webhook').item.json.body.challengeName || 'Road Safety') + ' challenge with a score of ' + $('Webhook').item.json.body.score + ' in one upbeat sentence.' }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [432, -320],
+      "id": "14277af9-845a-4ab9-8299-52dfa2526bbd",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": { "options": {}, "model": "openai/gpt-4o-mini" },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [640, 256],
+      "id": "bb7fdc49-458d-498f-bb49-e3a9445088cc",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": { "id": "NGRJkThTsT5UfJkT", "name": "OpenRouter account 25050654" }
+      }
+    },
+    {
+      "id": "c3d2a8c0-0ea9-4498-b360-56eb22f9f538",
+      "name": "Respond Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [448, 96],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"unauthorized\" } }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": { "entries": [ { "name": "Access-Control-Allow-Origin", "value": "*" } ] }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [ [ { "node": "If", "type": "main", "index": 0 } ] ] },
+    "If": {
+      "main": [
+        [ { "node": "Basic LLM Chain", "type": "main", "index": 0 } ],
+        [ { "node": "Respond Unauthorized", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Send a message": { "main": [ [ { "node": "Respond to Webhook", "type": "main", "index": 0 } ] ] },
+    "OpenRouter Chat Model": { "ai_languageModel": [ [ { "node": "Basic LLM Chain", "type": "ai_languageModel", "index": 0 } ] ] },
+    "Basic LLM Chain": { "main": [ [ { "node": "Send a message", "type": "main", "index": 0 } ] ] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1", "binaryMode": "separate" },
+  "tags": []
+}
