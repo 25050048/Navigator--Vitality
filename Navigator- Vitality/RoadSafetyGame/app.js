@@ -1,5 +1,11 @@
 (function(){
 
+  // build marker - check the browser console (F12) to confirm you're running
+  // this version and that the real car sounds loaded
+  console.log('%cNavigator build: real-car-sounds v3', 'color:#4c8c3c;font-weight:bold');
+  console.log('Sounds file loaded:', !!window.GAME_SOUNDS,
+              window.GAME_SOUNDS ? '(' + Object.keys(window.GAME_SOUNDS).join(', ') + ')' : '- sounds.js NOT found, check the <script src="sounds.js"> tag and that the file is in the folder');
+
   // ---------- basic setup ----------
   const holder = document.getElementById('canvasHolder');
   const scene = new THREE.Scene();
@@ -8,11 +14,30 @@
 
   const TILE = 1;
 
-  // Crossy Road style camera: a real PerspectiveCamera with a very narrow FOV,
-  // parked far back along the isometric direction. At that distance, near and
-  // far objects read at almost the same size (like an orthographic camera
-  // would), but there's still a touch of real depth/parallax - which is what
-  // gives Crossy Road its distinctive "flat but not quite" look.
+  /* ============================================================
+     AI QUIZ QUESTIONS
+     ------------------------------------------------------------
+     Questions are generated server-side by the "Quiz Question Generator"
+     n8n workflow (Webhook -> Basic LLM Chain -> OpenRouter Chat Model ->
+     Parse Quiz JSON -> Respond to Webhook). No OpenRouter key lives in
+     this file anymore - it's attached to the OpenRouter Chat Model node's
+     credential inside n8n instead.
+     Set AI_QUESTIONS to false to disable the AI quiz entirely (it has no
+     built-in question bank fallback - if generation fails, the quiz is
+     just skipped for that round).
+     ============================================================ */
+  const AI_QUESTIONS         = true;            // false = quiz is never shown
+  const N8N_QUIZ_WEBHOOK_URL = 'https://n8ngc.codeblazar.org/webhook/quiz-question'; // Quiz Question Generator workflow
+  console.log('[AI quiz] enabled:', AI_QUESTIONS, '| via n8n webhook:', N8N_QUIZ_WEBHOOK_URL);
+
+  /* ---- n8n webhooks (paste the URL n8n gives each workflow; blank = feature off) ---- */
+  const N8N_CERT_WEBHOOK_URL = 'https://n8ngc.codeblazar.org/webhook/game-complete';   // certificate email workflow (Get Certificate button)
+  const CERT_MIN_SCORE       = 50;  // points needed before the Get Certificate button appears
+  const CERT_ISSUER          = 'Navigator+ Vitality';  // "Issued By" line on the certificate
+  const CERT_CHALLENGE       = 'Road Safety';          // challenge name printed on the certificate
+  const N8N_CERT_SECRET      = 'mySecret123';          // MUST match the secret check in your n8n 'If' node
+
+
   const CAM_FOV = 12;
   const CAM_DIST = 34;
   const CAM_DIR = new THREE.Vector3(-1, 1.2, -1).normalize();
@@ -68,21 +93,335 @@
   function choice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
   function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
 
-  // ---------- world config ----------
-  const COL_MIN = -5, COL_MAX = 5; // playable column range (narrowed for a tighter, more compact feel)
+  // ---------- 3D model kit (Kenney Car Kit, CC0) ----------
+  const MODEL_FILES = {
+    // everyday traffic
+    sedan:'models/sedan.glb', taxi:'models/taxi.glb',
+    suv:'models/suv.glb', truck:'models/truck.glb', delivery:'models/delivery.glb',
+    hatchback:'models/hatchback-sports.glb', sportsedan:'models/sedan-sports.glb',
+    // emergency vehicles
+    ambulance:'models/ambulance.glb', police:'models/police.glb', firetruck:'models/firetruck.glb',
+    // obstacles
+    cone:'models/cone.glb', box:'models/box.glb'
+  };
+  const TRAFFIC_MODELS = ['sedan','taxi','suv','truck','delivery','hatchback','sportsedan'];
+  const modelCache = {};     // name -> prepared THREE.Object3D template (to clone)
+  let modelsReady = false;
 
-  // decorative ground extends way past the playable columns on both sides, so
-  // at the tighter camera zoom you never see the strip end mid-air - it's
-  // purely visual, isBlocked() below still only cares about COL_MIN/COL_MAX
+  const CAR_MODEL_SCALE = 0.42;
+
+  function prepareModelTemplate(gltf){
+    const root = gltf.scene || gltf.scenes[0];
+    root.traverse(o=>{
+      if (o.isMesh){
+        o.castShadow = true; o.receiveShadow = true;
+        if (o.material){
+          o.material = o.material.clone();
+          o.material.transparent = true;
+        }
+      }
+    });
+    return root;
+  }
+
+  function loadAllModels(onDone){
+    if (typeof THREE.GLTFLoader === 'undefined'){
+      console.error('[models] THREE.GLTFLoader is undefined - the GLTFLoader.js script did not load. Cars will be boxes. Make sure GLTFLoader.js sits next to index.html.');
+      if (onDone) onDone();
+      return;
+    }
+    const loader = new THREE.GLTFLoader();
+    const names = Object.keys(MODEL_FILES);
+    let remaining = names.length;
+    let loaded = 0, failed = 0;
+    if (!remaining){ if (onDone) onDone(); return; }
+    console.log('[models] loading', remaining, 'car models...');
+    names.forEach(name=>{
+      loader.load(
+        MODEL_FILES[name],
+        gltf => {
+          modelCache[name] = prepareModelTemplate(gltf);
+          loaded++;
+          if (--remaining === 0){ modelsReady = true; console.log('[models] done -', loaded, 'loaded,', failed, 'failed'); if (onDone) onDone(); }
+        },
+        undefined,
+        err => {
+          failed++;
+          console.error('[models] FAILED to load', MODEL_FILES[name], '- is the file in the models/ folder and are you running through a local server (not file://)?', err);
+          if (--remaining === 0){ modelsReady = true; console.log('[models] done -', loaded, 'loaded,', failed, 'failed'); if (onDone) onDone(); }
+        }
+      );
+    });
+  }
+
+  function modelVehicle(name, fallbackColor){
+    const wrap = new THREE.Group();
+    const tmpl = modelCache[name];
+    if (tmpl){
+      const inst = tmpl.clone(true);
+      inst.scale.setScalar(CAR_MODEL_SCALE);
+      inst.rotation.y = Math.PI/2; // models natively face +Z; rotate so front points +X (travel direction)
+      wrap.add(inst);
+    } else {
+      const body = box(1.0,0.35,0.62, fallbackColor || choice(CAR_COLORS));
+      body.position.y = 0.28;
+      const cabin = box(0.55,0.3,0.55,0xdfeff5);
+      cabin.position.set(0.05,0.58,0);
+      wrap.add(body, cabin);
+    }
+    wrap.traverse(o=>{
+      if(o.isMesh){
+        o.castShadow=true; o.receiveShadow=true;
+        if (o.material && !o.material.transparent){ o.material = o.material.clone(); o.material.transparent = true; }
+      }
+    });
+    return wrap;
+  }
+
+  // ---------- audio (synthesized via Web Audio, no files needed) ----------
+  const Sound = (function(){
+    let ctx = null;
+    let master = null;
+    let muted = false;
+
+    function ensure(){
+      if (!ctx){
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ctx = new AC();
+        master = ctx.createGain();
+        master.gain.value = 0.5;
+        master.connect(ctx.destination);
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    }
+
+    const buffers = {};   // name -> decoded AudioBuffer
+    const loading = {};   // name -> Promise, so we only decode once
+
+    function dataUriToArrayBuffer(dataUri){
+      const comma = dataUri.indexOf(',');
+      const b64 = comma >= 0 ? dataUri.slice(comma + 1) : dataUri;
+      const binary = atob(b64);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+
+    function loadSample(name, dataUri){
+      if (buffers[name]) return Promise.resolve(buffers[name]);
+      if (loading[name]) return loading[name];
+      const c = ensure(); if (!c) return Promise.resolve(null);
+      loading[name] = new Promise((resolve) => {
+        let ab;
+        try { ab = dataUriToArrayBuffer(dataUri); }
+        catch (e){ console.warn('Sound: bad audio data for', name, e); resolve(null); return; }
+        c.decodeAudioData(
+          ab,
+          buf => { buffers[name] = buf; resolve(buf); },
+          err => { console.warn('Sound: could not decode', name, err); resolve(null); }
+        );
+      });
+      return loading[name];
+    }
+
+    function preloadSamples(){
+      const src = window.GAME_SOUNDS || {};
+      Object.keys(src).forEach(name => loadSample(name, src[name]));
+    }
+
+    function playSample(name, { gain=1, rate=1 } = {}){
+      if (muted) return;
+      const c = ensure(); if (!c) return;
+      const buf = buffers[name];
+      if (!buf){
+        const src = window.GAME_SOUNDS || {};
+        if (src[name]){
+          loadSample(name, src[name]);        
+          playViaAudioElement(name, gain);    
+        }
+        return;
+      }
+      const source = c.createBufferSource();
+      source.buffer = buf;
+      source.playbackRate.value = rate;
+      const g = c.createGain();
+      g.gain.value = gain;
+      source.connect(g); g.connect(master);
+      source.start();
+    }
+
+    const audioElPool = {};
+    function playViaAudioElement(name, gain){
+      const src = window.GAME_SOUNDS || {};
+      if (!src[name]) return;
+      try {
+        let el = audioElPool[name];
+        if (!el){
+          el = new Audio(src[name]);
+          el.preload = 'auto';
+          audioElPool[name] = el;
+        }
+        el.volume = Math.max(0, Math.min(1, gain));
+        el.currentTime = 0;
+        const p = el.play();
+        if (p && p.catch) p.catch(()=>{});
+      } catch(e){ /* no-op */ }
+    }
+
+    function tone({ freq=440, type='sine', dur=0.15, gain=0.3, attack=0.008, decay=null, slideTo=null, delay=0 }){
+      if (muted) return;
+      const c = ensure(); if (!c) return;
+      const t0 = c.currentTime + delay;
+      const osc = c.createOscillator();
+      const g = c.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo){ osc.frequency.exponentialRampToValueAtTime(Math.max(1, slideTo), t0 + dur); }
+      const peak = gain;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(peak, t0 + attack);
+      const end = t0 + (decay || dur);
+      g.gain.exponentialRampToValueAtTime(0.0001, end);
+      osc.connect(g); g.connect(master);
+      osc.start(t0);
+      osc.stop(end + 0.02);
+    }
+
+    function noise({ dur=0.2, gain=0.3, type='lowpass', freq=800, delay=0 }){
+      if (muted) return;
+      const c = ensure(); if (!c) return;
+      const t0 = c.currentTime + delay;
+      const frames = Math.floor(c.sampleRate * dur);
+      const buffer = c.createBuffer(1, frames, c.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i=0;i<frames;i++) data[i] = (Math.random()*2 - 1) * (1 - i/frames);
+      const src = c.createBufferSource(); src.buffer = buffer;
+      const filter = c.createBiquadFilter(); filter.type = type; filter.frequency.value = freq;
+      const g = c.createGain();
+      g.gain.setValueAtTime(gain, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(filter); filter.connect(g); g.connect(master);
+      src.start(t0);
+      src.stop(t0 + dur + 0.02);
+    }
+
+    const fx = {
+      hop(){ tone({ freq:520, type:'square', dur:0.09, gain:0.14, slideTo:660 }); },
+      safe(){ 
+        tone({ freq:660, type:'triangle', dur:0.12, gain:0.2 });
+        tone({ freq:880, type:'triangle', dur:0.16, gain:0.2, delay:0.1 });
+      },
+      point(){ tone({ freq:990, type:'triangle', dur:0.1, gain:0.16 }); },
+      correct(){
+        tone({ freq:660, type:'triangle', dur:0.1, gain:0.22 });
+        tone({ freq:990, type:'triangle', dur:0.14, gain:0.22, delay:0.09 });
+      },
+      wrong(){ tone({ freq:300, type:'sawtooth', dur:0.22, gain:0.16, slideTo:180 }); },
+      quizOpen(){ tone({ freq:520, type:'sine', dur:0.14, gain:0.16, slideTo:700 }); },
+      green(){ 
+        tone({ freq:587, type:'triangle', dur:0.12, gain:0.18 });
+        tone({ freq:784, type:'triangle', dur:0.18, gain:0.18, delay:0.11 });
+      },
+      jaywalk(){ 
+        tone({ freq:220, type:'sawtooth', dur:0.28, gain:0.2, slideTo:150 });
+        noise({ dur:0.18, gain:0.1, freq:1200, delay:0.02 });
+      },
+      splat(){ 
+        noise({ dur:0.28, gain:0.35, type:'lowpass', freq:500 });
+        tone({ freq:200, type:'sawtooth', dur:0.3, gain:0.2, slideTo:70 });
+      },
+      siren(){
+        const hi = 740, lo = 560;
+        const step = 0.42;
+        for (let i=0;i<4;i++){
+          tone({ freq:hi, type:'square', dur:step*0.95, gain:0.12, delay:i*step*2 });
+          tone({ freq:lo, type:'square', dur:step*0.95, gain:0.12, delay:i*step*2 + step });
+        }
+      },
+      start(){
+        tone({ freq:523, type:'triangle', dur:0.1, gain:0.2 });
+        tone({ freq:659, type:'triangle', dur:0.1, gain:0.2, delay:0.09 });
+        tone({ freq:784, type:'triangle', dur:0.18, gain:0.2, delay:0.18 });
+      },
+      honk(){ playSample('horn', { gain:0.7 }); }
+    };
+
+    let engineNodes = null;
+    let engineTargetGain = 0;
+
+    function startEngineHum(){
+      const c = ensure(); if (!c) return;
+      if (engineNodes) return;
+      const oscA = c.createOscillator();
+      const oscB = c.createOscillator();
+      oscA.type = 'sawtooth'; oscB.type = 'sawtooth';
+      oscA.frequency.value = 70; oscB.frequency.value = 104; 
+      const frames = Math.floor(c.sampleRate * 1.5);
+      const nb = c.createBuffer(1, frames, c.sampleRate);
+      const nd = nb.getChannelData(0);
+      for (let i=0;i<frames;i++) nd[i] = (Math.random()*2-1) * 0.5;
+      const noiseSrc = c.createBufferSource();
+      noiseSrc.buffer = nb; noiseSrc.loop = true;
+      const noiseGain = c.createGain(); noiseGain.gain.value = 0.25;
+      const filter = c.createBiquadFilter();
+      filter.type = 'lowpass'; filter.frequency.value = 260; filter.Q.value = 0.8;
+      const g = c.createGain(); g.gain.value = 0; 
+      oscA.connect(filter); oscB.connect(filter);
+      noiseSrc.connect(noiseGain); noiseGain.connect(filter);
+      filter.connect(g); g.connect(master);
+      oscA.start(); oscB.start(); noiseSrc.start();
+      engineNodes = { oscA, oscB, noiseSrc, filter, gain: g };
+    }
+
+    function setEngineLevel(level){
+      engineTargetGain = muted ? 0 : Math.min(0.22, level * 0.22);
+      if (engineNodes){
+        const now = ctx.currentTime;
+        engineNodes.gain.gain.setTargetAtTime(engineTargetGain, now, 0.08);
+        engineNodes.filter.frequency.setTargetAtTime(220 + level*220, now, 0.1);
+      }
+    }
+
+    function stopEngineHum(){
+      if (!engineNodes) return;
+      const now = ctx.currentTime;
+      engineNodes.gain.gain.setTargetAtTime(0, now, 0.1);
+      const n = engineNodes;
+      setTimeout(()=>{ try { n.oscA.stop(); n.oscB.stop(); n.noiseSrc.stop(); } catch(e){} }, 300);
+      engineNodes = null;
+    }
+
+    return {
+      play(name){ if (fx[name]) fx[name](); },
+      resume(){
+        ensure();
+        if (!window.GAME_SOUNDS){
+          console.warn('Sound: window.GAME_SOUNDS is missing - is sounds.js loaded before app.js?');
+        }
+        preloadSamples();
+      },
+      preloadSamples,
+      startEngineHum, setEngineLevel, stopEngineHum,
+      toggleMute(){
+        muted = !muted;
+        if (engineNodes) engineNodes.gain.gain.value = muted ? 0 : engineTargetGain;
+        return muted;
+      },
+      isMuted(){ return muted; }
+    };
+  })();
+
+  // ---------- world config ----------
+  const COL_MIN = -5, COL_MAX = 5; 
+
   const GROUND_PAD = 40;
   const GROUND_W = (COL_MAX - COL_MIN) + GROUND_PAD;
 
   const CAR_COLORS = [0xe74c3c, 0xf1c40f, 0x3498db, 0xe67e22, 0x9b59b6, 0x1abc9c, 0xecf0f1];
 
-  // ---------- biomes (purely cosmetic reskins, no gameplay change) ----------
-  // the world cycles through these every BIOME_LENGTH rows so the run doesn't
-  // look like the same grass/road forever - background scenery + tint change,
-  // obstacles/lanes/collision are identical across biomes
   const BIOME_LENGTH = 16;
   const BIOME_ORDER = ['park', 'town', 'school'];
   const BIOME_DATA = {
@@ -95,10 +434,6 @@
     return BIOME_ORDER[i];
   }
 
-  // ---------- difficulty progression ----------
-  // traffic gradually gets faster/denser as the run goes on, capping out
-  // around row 150 so it never becomes unfair - purely a speed/density curve,
-  // no rule changes
   const DIFFICULTY_CAP_ROW = 150;
   function difficultyFactor(rowIndex){
     return 1 + Math.min(Math.max(rowIndex, 0), DIFFICULTY_CAP_ROW) / DIFFICULTY_CAP_ROW;
@@ -107,23 +442,14 @@
     return [range[0] * factor, range[1] * factor];
   }
 
-  // ---------- rare special events ----------
-  // an emergency vehicle occasionally barrels through a junction regardless of
-  // the light - teaches that a green light isn't a guarantee, always look
   const EMERGENCY_EVENT_CHANCE = 0.12;
   let emergencyVehicles = [];
 
-  // rows storage: rows[rowIndex] = { type, group(THREE.Group), ... }
   let rows = {};
   let rowGroupParent = new THREE.Group();
   scene.add(rowGroupParent);
 
   let maxGeneratedRow = -1;
-
-  // tracks the lane column of the most recently generated crossing (starts at
-  // the player's spawn column) - used so the connecting grass between two
-  // crossings always has a guaranteed clear lateral path from one lane to the
-  // next, not just a clear path straight into the upcoming crossing
   let lastLaneCol = 0;
 
   function makeTreeObstacle(){
@@ -138,7 +464,6 @@
     return tree;
   }
 
-  // decorative-only flower patch - never blocks movement, just fills in empty grass
   function makeFlowerPatch(){
     const g = new THREE.Group();
     const petalColors = [0xff6b81, 0xffd93d, 0xff9f43, 0xc56cf0, 0xf7f1e3, 0xff8fa3];
@@ -161,8 +486,10 @@
     return g;
   }
 
-  // small traffic cone - a lighter obstacle, blocks just its own tile like a tree
   function makeConeObstacle(){
+    return modelProp('cone', 0.9, buildBoxCone);
+  }
+  function buildBoxCone(){
     const g = new THREE.Group();
     const cone = new THREE.Mesh(
       new THREE.ConeGeometry(0.22, 0.42, 10),
@@ -183,10 +510,6 @@
     return g;
   }
 
-  // walk backward through every consecutive grass row leading up to a crossing
-  // and clear any tree/cone sitting in the lane's approach columns, so there's
-  // always a guaranteed straight path into the lane no matter how long the
-  // preceding grass patch is
   function clearApproachPath(crossingStartRow, laneMin, laneMax){
     let r = crossingStartRow - 1;
     while (rows[r] && rows[r].type === 'grass'){
@@ -205,8 +528,6 @@
     }
   }
 
-  // ---------- background scenery (decorative only, sits beyond the playable
-  // columns so it never affects collision, just fills in the biome flavor) ----------
   function makeLampPost(){
     const g = new THREE.Group();
     const pole = box(0.09, 1.6, 0.09, 0x3a3a3a);
@@ -260,23 +581,26 @@
     return g;
   }
 
-  // adds biome-flavored background scenery just outside the playable columns
-  // on both sides - never touches treeCols/blocked, so it can never affect movement
   function addBackgroundScenery(g, rowIndex, biome){
-    const leftX = COL_MIN - rand(1.6, 2.6);
-    const rightX = COL_MAX + rand(1.6, 2.6);
+    // Inner lane holds the primary prop (tree/house/flag). Secondary props (lamp/fence)
+    // go in an outer lane so they never clip into the inner prop on the same side.
+    const leftInner  = COL_MIN - rand(1.6, 2.6);
+    const rightInner = COL_MAX + rand(1.6, 2.6);
+    const leftOuter  = leftInner  - rand(1.1, 1.8);
+    const rightOuter = rightInner + rand(1.1, 1.8);
+    const jz = () => rand(-0.18, 0.18); // tighter z jitter to avoid clipping across adjacent rows
     if (biome === 'town'){
-      if (Math.random() < 0.6){ const h = makeHouse(); h.position.set(leftX, 0, rand(-0.3,0.3)); g.add(h); }
-      if (Math.random() < 0.6){ const h = makeHouse(); h.position.set(rightX, 0, rand(-0.3,0.3)); g.add(h); }
-      if (Math.random() < 0.4){ const l = makeLampPost(); l.position.set(leftX + rand(-0.4,0.4), 0, rand(-0.3,0.3)); g.add(l); }
+      if (Math.random() < 0.6){ const h = makeHouse(); h.position.set(leftInner, 0, jz()); g.add(h); }
+      if (Math.random() < 0.6){ const h = makeHouse(); h.position.set(rightInner, 0, jz()); g.add(h); }
+      if (Math.random() < 0.4){ const l = makeLampPost(); l.position.set(leftOuter, 0, jz()); g.add(l); }
     } else if (biome === 'school'){
-      if (Math.random() < 0.35){ const f = makeSchoolFlag(); f.position.set(leftX, 0, 0); g.add(f); }
-      if (Math.random() < 0.7){ const b = makeSchoolBush(); b.position.set(rightX, 0, rand(-0.3,0.3)); g.add(b); }
-      if (Math.random() < 0.5){ const fence = makeFenceSeg(); fence.position.set(leftX + rand(-0.3,0.3), 0, rand(-0.3,0.3)); g.add(fence); }
-    } else { // park
-      if (Math.random() < 0.5){ const t = makeTreeObstacle(); t.position.set(leftX, 0, rand(-0.3,0.3)); g.add(t); }
-      if (Math.random() < 0.5){ const t = makeTreeObstacle(); t.position.set(rightX, 0, rand(-0.3,0.3)); g.add(t); }
-      if (Math.random() < 0.3){ const l = makeLampPost(); l.position.set(rightX + rand(-0.4,0.4), 0, rand(-0.3,0.3)); g.add(l); }
+      if (Math.random() < 0.35){ const f = makeSchoolFlag(); f.position.set(leftInner, 0, jz()); g.add(f); }
+      if (Math.random() < 0.7){ const b = makeSchoolBush(); b.position.set(rightInner, 0, jz()); g.add(b); }
+      if (Math.random() < 0.5){ const fence = makeFenceSeg(); fence.position.set(leftOuter, 0, jz()); g.add(fence); }
+    } else { 
+      if (Math.random() < 0.5){ const t = makeTreeObstacle(); t.position.set(leftInner, 0, jz()); g.add(t); }
+      if (Math.random() < 0.5){ const t = makeTreeObstacle(); t.position.set(rightInner, 0, jz()); g.add(t); }
+      if (Math.random() < 0.3){ const l = makeLampPost(); l.position.set(rightOuter, 0, jz()); g.add(l); }
     }
   }
 
@@ -295,7 +619,7 @@
     const obstacleCount = Math.random() < 0.55 ? Math.floor(rand(0,3)) : 0;
     for(let i=0;i<obstacleCount;i++){
       const c = Math.floor(rand(COL_MIN, COL_MAX+1));
-      if (c === 0 && rowIndex < 2) continue; // keep spawn clear
+      if (c === 0 && rowIndex < 2) continue; 
       treeCols.add(c);
     }
     treeCols.forEach(c=>{
@@ -305,7 +629,6 @@
       treeMeshes.set(c, obstacle);
     });
 
-    // scatter decorative flower patches - purely visual, never blocks movement
     const flowerCount = Math.random() < 0.8 ? Math.floor(rand(2,6)) : 0;
     for (let i = 0; i < flowerCount; i++){
       const c = Math.floor(rand(COL_MIN, COL_MAX+1));
@@ -321,57 +644,46 @@
     rows[rowIndex] = { type:'grass', group:g, blocked: treeCols, trees: treeMeshes };
   }
 
+  function modelProp(name, scale, fallbackFn){
+    const wrap = new THREE.Group();
+    const tmpl = modelCache[name];
+    if (tmpl){
+      const inst = tmpl.clone(true);
+      inst.scale.setScalar(scale);
+      wrap.add(inst);
+      wrap.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+      return wrap;
+    }
+    return fallbackFn ? fallbackFn() : wrap;
+  }
+
   function makeCar(){
-    const car = new THREE.Group();
-    const color = choice(CAR_COLORS);
-    const body = box(1.0,0.35,0.62,color);
-    body.position.y = 0.28;
-    const cabin = box(0.55,0.3,0.55,0xdfeff5);
-    cabin.position.set(0.05,0.58,0);
-    const wheelMat = new THREE.MeshLambertMaterial({color:0x222222});
-    const wheelGeo = new THREE.BoxGeometry(0.22,0.22,0.7);
-    const w1 = new THREE.Mesh(wheelGeo, wheelMat); w1.position.set(0.32,0.1,0);
-    const w2 = new THREE.Mesh(wheelGeo, wheelMat); w2.position.set(-0.32,0.1,0);
-    car.add(body, cabin, w1, w2);
-    car.traverse(o=>{
-      if(o.isMesh){
-        o.castShadow=true; o.receiveShadow=true;
-        o.material = o.material.clone(); // own material instance so opacity fades don't leak between cars
-        o.material.transparent = true;
-      }
-    });
+    const car = modelVehicle(choice(TRAFFIC_MODELS));
     return car;
   }
 
-  // rare special-event vehicle: an ambulance that ignores the stop line
-  // entirely, regardless of the light - it's the "even a green light isn't a
-  // guarantee, always check" moment
+  const EMERGENCY_MODELS = ['ambulance','police','firetruck'];
   function makeAmbulance(){
-    const car = new THREE.Group();
-    const body = box(1.05,0.4,0.62,0xf2f2f2);
-    body.position.y = 0.3;
-    const stripe = box(1.07,0.14,0.64,0xe74c3c);
-    stripe.position.y = 0.3;
-    const cabin = box(0.5,0.28,0.55,0xdfeff5);
-    cabin.position.set(0.3,0.62,0);
-    const beacon = box(0.24,0.1,0.24,0xff3b3b);
-    beacon.material = new THREE.MeshStandardMaterial({ color:0xff3b3b, emissive:0xff2222, emissiveIntensity:0.6 });
-    beacon.position.set(0,0.78,0);
-    const wheelMat = new THREE.MeshLambertMaterial({color:0x222222});
-    const wheelGeo = new THREE.BoxGeometry(0.22,0.22,0.7);
-    const w1 = new THREE.Mesh(wheelGeo, wheelMat); w1.position.set(0.34,0.1,0);
-    const w2 = new THREE.Mesh(wheelGeo, wheelMat); w2.position.set(-0.34,0.1,0);
-    car.add(body, stripe, cabin, beacon, w1, w2);
-    car.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+    const car = modelVehicle(choice(EMERGENCY_MODELS));
+    const beacon = new THREE.Mesh(
+      new THREE.BoxGeometry(0.24,0.1,0.24),
+      new THREE.MeshStandardMaterial({ color:0xff3b3b, emissive:0xff2222, emissiveIntensity:0.6 })
+    );
+    beacon.position.set(0, 1.05, 0);
+    car.add(beacon);
     car.userData.beaconMat = beacon.material;
     return car;
   }
 
-  // fade a car in/out as it nears the off-screen spawn/despawn edges, instead of
-  // popping abruptly into or out of existence
   const CAR_FADE_ZONE = 1.8;
   function setCarOpacity(car, opacity){
-    car.traverse(o=>{ if (o.isMesh && o.material) o.material.opacity = opacity; });
+    car.visible = opacity > 0.02; // fully hide (and stop casting a shadow) once essentially invisible
+    car.traverse(o=>{
+      if (o.isMesh && o.material){
+        o.material.opacity = opacity;
+        o.castShadow = opacity > 0.6; // fade the shadow out with the car so no orphan shadow lingers on the road
+      }
+    });
   }
   function carEdgeOpacity(x){
     const farLimit = COL_MAX + 4;
@@ -381,11 +693,6 @@
     return Math.min(fadeFar, fadeNear);
   }
 
-  // wrap a lane's cars around once they're far off-screen. Rather than dropping
-  // each one back at a fixed spot (which can land it right on top of another car
-  // that just wrapped, so two pop into view together), the new spawn point is
-  // tucked at least one lane-gap behind whichever car is currently the most
-  // rearward - so cars always re-enter the screen one at a time, in a queue.
   function recycleCars(rd){
     const limit = COL_MAX + 4;
     rd.cars.forEach(car=>{
@@ -420,9 +727,7 @@
     }
   }
 
-  // wide crossing lane: interior stays completely plain (same as the road, no
-  // markings at all), only the two edges get a dotted white highlight line
-  const LANE_HALF_WIDTH = 1; // lane spans laneCol-1 .. laneCol+1 (3 tiles wide)
+  const LANE_HALF_WIDTH = 1;
 
   function makeLaneSegment(g, laneCol){
     const edgeOffset = LANE_HALF_WIDTH + 0.5;
@@ -444,15 +749,15 @@
     const cars = [];
     for(let i=0;i<count;i++){
       const vehicle = makeCar();
+      if (dir < 0) vehicle.rotation.y += Math.PI;
       vehicle.position.set(COL_MIN + i*gap*dir*-1 + rand(-1,1), 0, 0);
-      vehicle.userData.speed = speed; // current eased speed, used for smooth braking
-      vehicle.userData.cruiseSpeed = speed; // this vehicle's own top speed when not braking
+      vehicle.userData.speed = speed; 
+      vehicle.userData.cruiseSpeed = speed; 
       carGroup.add(vehicle);
       cars.push(vehicle);
     }
     return { carGroup, cars, speed, gap };
   }
-
 
   function makeCrosswalkStripes(g, laneCol){
     const stripeCount = 5;
@@ -468,8 +773,6 @@
     }
   }
 
-  // classic Belisha beacon - black/white striped pole topped with an orange globe
-  // that flashes slowly. Purely aesthetic, marks the zebra crossing like in real life.
   function makeBelishaBeacon(){
     const g = new THREE.Group();
     const stripeCount = 6;
@@ -491,9 +794,6 @@
     return g;
   }
 
-  // single-lane road with no traffic light - a plain zebra crossing, sized to match
-  // the light-controlled crossings. Cars yield (brake to a full stop) whenever the
-  // player is waiting to cross or already on it, otherwise they drive through freely.
   function makeZebraCrossing(rowIndex){
     const g = new THREE.Group();
     const biome = biomeForRow(rowIndex);
@@ -505,19 +805,12 @@
     const laneCol = randInt(COL_MIN + 1 + LANE_HALF_WIDTH, COL_MAX - 1 - LANE_HALF_WIDTH);
     makeCrosswalkStripes(g, laneCol);
 
-    // guarantee a clear path into the lane, all the way back through the
-    // entire grass patch leading up to this crossing (not just the last row).
-    // Also span all the way back to the PREVIOUS crossing's lane column, so if
-    // the two lanes sit at different columns, the lateral shimmy between them
-    // can't get walled off by a stray obstacle in a narrow connecting strip.
     const zebraClearMin = Math.min(lastLaneCol, laneCol) - LANE_HALF_WIDTH;
     const zebraClearMax = Math.max(lastLaneCol, laneCol) + LANE_HALF_WIDTH;
     clearApproachPath(rowIndex, zebraClearMin, zebraClearMax);
     lastLaneCol = laneCol;
     const approachRow = rows[rowIndex - 1];
 
-    // one Belisha beacon, planted on the grass curb right before the crossing -
-    // off the road entirely, standing right where a pedestrian would wait
     const beaconMats = [];
     if (approachRow && approachRow.type === 'grass'){
       const beaconSide = laneCol < (COL_MIN + COL_MAX) / 2 ? -1 : 1;
@@ -566,7 +859,6 @@
   function updatePoleVisual(ctrl){
     if (ctrl.poleMesh){
       const { redLight, yellowLight, greenLight } = ctrl.poleMesh.userData;
-      // pedestrian side: red = don't walk (cars flowing), green = walk (cars stopped)
       redLight.material.emissive.setHex(ctrl.state==='red' ? 0xff2222 : 0x000000);
       redLight.material.color.setHex(ctrl.state==='red' ? 0xff4444 : 0x551111);
       yellowLight.material.emissive.setHex(ctrl.state==='yellow' ? 0xffcc00 : 0x000000);
@@ -576,9 +868,6 @@
     }
   }
 
-  // Pedestrian-controlled light. Default is RED (cars flow freely).
-  // Player presses E right at the junction to request a crossing:
-  // red -> yellow (cars slow) -> green (cars stop, safe to cross) -> yellow (warning) -> red
   function updateLightController(ctrl, dt){
     if (ctrl.state === 'red'){
       if (ctrl.requested){
@@ -588,12 +877,13 @@
         ctrl.timer = 0.9;
         updatePoleVisual(ctrl);
       }
-      return; // stays red (cars keep flowing) until requested
+      return; 
     }
     ctrl.timer -= dt;
     if (ctrl.timer <= 0){
       if (ctrl.state === 'yellow' && ctrl.phase === 'toGreen'){
         ctrl.state = 'green'; ctrl.timer = 4.5;
+        Sound.play('green');
       } else if (ctrl.state === 'green'){
         ctrl.state = 'yellow'; ctrl.phase = 'toRed'; ctrl.timer = 1.0;
       } else if (ctrl.state === 'yellow' && ctrl.phase === 'toRed'){
@@ -603,13 +893,10 @@
     }
   }
 
-  // Every road is a light-controlled crossing (1-4 lanes wide), with one shared
-  // traffic light and a single vertical "safe lane" the player must stay inside
-  // while crossing (stepping outside it anywhere in the block is fatal).
   function makeJunction(startRow, width){
     const laneCol = randInt(COL_MIN + 1 + LANE_HALF_WIDTH, COL_MAX - 1 - LANE_HALF_WIDTH);
     const controller = {
-      state: 'red',      // red = cars flow, yellow = transition, green = cars stopped for pedestrian
+      state: 'red',      
       phase: null,
       timer: 0,
       requested: false,
@@ -618,15 +905,10 @@
       startRow,
       endRow: startRow + width - 1
     };
-    // stand the pedestrian light right beside the lane, facing the side the player approaches from
     const poleOffsetDir = laneCol < (COL_MIN + COL_MAX) / 2 ? -1 : 1;
     const poleX = laneCol + poleOffsetDir * (LANE_HALF_WIDTH + 0.25);
-    const poleRow = startRow; // pedestrian pole stands right where the crossing begins
+    const poleRow = startRow; 
 
-    // guarantee a clear path into the lane, all the way back through the
-    // entire grass patch leading up to this crossing (not just the last row).
-    // Also span back to the PREVIOUS crossing's lane column so the lateral
-    // shimmy connecting the two lanes can never get walled off.
     const junctionClearMin = Math.min(lastLaneCol, laneCol) - LANE_HALF_WIDTH;
     const junctionClearMax = Math.max(lastLaneCol, laneCol) + LANE_HALF_WIDTH;
     clearApproachPath(startRow, junctionClearMin, junctionClearMax);
@@ -660,8 +942,6 @@
       g.position.z = rowIndex;
       rows[rowIndex] = { type:'junction', group:g, dir, speed, gap, cars, blocked:new Set(), light: controller };
 
-      // rare special event: an ambulance that ignores the stop line completely,
-      // regardless of the light state - only ever one attempt per junction row
       if (Math.random() < EMERGENCY_EVENT_CHANCE){
         spawnEmergencyVehicle(rowIndex, dir);
       }
@@ -669,13 +949,11 @@
     updatePoleVisual(controller);
   }
 
-  // spawns a one-off ambulance on the given row that drives straight through
-  // ignoring the pedestrian light entirely - added to a separate list so it
-  // never gets tangled up with the normal car-following/braking logic
   function spawnEmergencyVehicle(rowIndex, dir){
     const rd = rows[rowIndex];
     if (!rd) return;
     const amb = makeAmbulance();
+    if (dir < 0) amb.rotation.y += Math.PI;
     const startX = dir > 0 ? (COL_MIN - rand(3, 6)) : (COL_MAX + rand(3, 6));
     amb.position.set(startX, 0, 0);
     rd.group.add(amb);
@@ -685,7 +963,6 @@
   function decideRowType(prevType, prevType2){
     let weights = { grass:0.5, junction:0.32, zebra:0.18 };
     if (prevType !== 'grass') weights.grass += 0.28;
-    // always leave a grass gap between any two crossings
     if (prevType === 'junction' || prevType === 'zebra'){ weights.junction = 0; weights.zebra = 0; }
     if (prevType2 === 'junction' || prevType2 === 'zebra'){ weights.junction *= 0.3; weights.zebra *= 0.3; }
 
@@ -716,12 +993,11 @@
       rows[rowIndex].group.position.z = rowIndex;
       maxGeneratedRow = rowIndex;
     } else if (type === 'zebra'){
-      // single-lane crossing - no traffic light needed, just a classic zebra crossing
       makeZebraCrossing(rowIndex);
       rows[rowIndex].group.position.z = rowIndex;
       maxGeneratedRow = rowIndex;
     } else if (type === 'junction'){
-      const width = randInt(2, 4); // wider roads still get a light-controlled crossing
+      const width = randInt(2, 4); 
       makeJunction(rowIndex, width);
       maxGeneratedRow = rowIndex + width - 1;
     }
@@ -735,11 +1011,6 @@
     }
   }
 
-  // fill in a few plain grass rows BEHIND the spawn point (negative row
-  // indices) so that at the start of a run the camera sees a complete grassy
-  // platform underneath and behind the player, instead of the ground appearing
-  // to end right at their feet. These are purely cosmetic - the player never
-  // needs to walk back onto them, and cleanupOldRows sweeps them once passed.
   function fillStartPlatform(depth){
     for (let r = -1; r >= -depth; r--){
       if (rows[r]) continue;
@@ -763,7 +1034,7 @@
   const player = new THREE.Group();
   function buildCat(){
     const g = new THREE.Group();
-    const furColor = 0xf2a154; // orange tabby
+    const furColor = 0xf2a154;
     const bodyMat = new THREE.MeshLambertMaterial({color:furColor});
     const body = box(0.42,0.34,0.5, furColor, bodyMat);
     body.position.y = 0.28;
@@ -771,37 +1042,31 @@
     const head = box(0.34,0.3,0.3, furColor, bodyMat);
     head.position.set(0,0.58,0.2);
 
-    // pointy ears
     const earGeo = new THREE.ConeGeometry(0.09,0.16,4);
     const earL = new THREE.Mesh(earGeo, bodyMat);
     earL.position.set(0.12,0.8,0.16); earL.rotation.y = Math.PI/4;
     const earR = new THREE.Mesh(earGeo, bodyMat);
     earR.position.set(-0.12,0.8,0.16); earR.rotation.y = Math.PI/4;
 
-    // inner ear
     const innerEarMat = new THREE.MeshLambertMaterial({color:0xffc9d6});
     const innerGeo = new THREE.ConeGeometry(0.05,0.09,4);
     const innerL = new THREE.Mesh(innerGeo, innerEarMat); innerL.position.set(0.12,0.77,0.19); innerL.rotation.y = Math.PI/4;
     const innerR = new THREE.Mesh(innerGeo, innerEarMat); innerR.position.set(-0.12,0.77,0.19); innerR.rotation.y = Math.PI/4;
 
-    // muzzle + nose
     const muzzle = box(0.16,0.1,0.1, 0xffffff);
     muzzle.position.set(0,0.52,0.36);
     const nose = new THREE.Mesh(new THREE.BoxGeometry(0.045,0.045,0.045), new THREE.MeshLambertMaterial({color:0xff8fa3}));
     nose.position.set(0,0.57,0.38);
 
-    // eyes
     const eyeMat = new THREE.MeshLambertMaterial({color:0x1c1c1c});
     const eyeGeo = new THREE.BoxGeometry(0.05,0.06,0.05);
     const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(0.1,0.64,0.34);
     const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set(-0.1,0.64,0.34);
 
-    // tail, curved back and up
     const tail = box(0.09,0.09,0.4, furColor, bodyMat);
     tail.position.set(0,0.4,-0.36);
     tail.rotation.x = 0.55;
 
-    // legs / paws
     const legMat = new THREE.MeshLambertMaterial({color:furColor});
     const legGeo = new THREE.BoxGeometry(0.1,0.18,0.1);
     const legFL = new THREE.Mesh(legGeo, legMat); legFL.position.set(0.14,0.09,0.16);
@@ -809,7 +1074,6 @@
     const legBL = new THREE.Mesh(legGeo, legMat); legBL.position.set(0.14,0.09,-0.16);
     const legBR = new THREE.Mesh(legGeo, legMat); legBR.position.set(-0.14,0.09,-0.16);
 
-    // white belly patch
     const belly = box(0.2,0.16,0.3, 0xffffff);
     belly.position.set(0,0.2,0.05);
 
@@ -821,7 +1085,6 @@
   player.add(chickenMesh);
   scene.add(player);
 
-  // shadow blob under player
   const shadowGeo = new THREE.CircleGeometry(0.32, 16);
   const shadowMat = new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:0.25});
   const playerShadow = new THREE.Mesh(shadowGeo, shadowMat);
@@ -829,21 +1092,13 @@
   playerShadow.position.y = 0.02;
   scene.add(playerShadow);
 
-  // ---------- safety quiz (Ranger Zeb, the safety buddy) ----------
-  // Local content for the prototype. Swap `pickQuizItem`'s question-picking for
-  // an LLM call later - scoring, UI, and flow control all stay the same either way.
   const BUDDY_NAME = "Ranger Zeb";
 
-  // ---------- bottom-left buddy agent ----------
-  // Ranger Zeb hangs out in the corner and reacts to what the player does
-  // (praise for safe crossings, callouts for jaywalking) and otherwise cycles
-  // through Singapore road-safety facts so there's always something to learn.
   const buddyAgentEl = document.getElementById('buddyAgent');
   const buddyAgentTextEl = document.getElementById('buddyAgentText');
   let buddyMsgTimer = null;
   let buddyIdleTimer = null;
 
-  // Singapore-specific road-safety facts shown during calm moments
   const SG_FACTS = [
     "In Singapore, cars drive on the left - so look RIGHT first when you cross.",
     "The flashing green man means finish crossing - don't start if you're still on the kerb.",
@@ -864,7 +1119,6 @@
     else if (mood === 'tip') buddyAgentEl.classList.add('tip');
   }
 
-  // show a message for `hold` ms, then resume the idle fact rotation
   function buddySay(text, mood, hold){
     if (!buddyAgentTextEl) return;
     buddyAgentTextEl.textContent = text;
@@ -880,7 +1134,7 @@
     buddyAgentTextEl.textContent = SG_FACTS[factIdx];
     factIdx = (factIdx + 1) % SG_FACTS.length;
     setBuddyMood('tip');
-    scheduleIdleFact(7000); // next fact after a while
+    scheduleIdleFact(7000); 
   }
 
   function scheduleIdleFact(delay){
@@ -897,68 +1151,13 @@
     scheduleIdleFact(4500);
   }
 
-  // Category-tagged question bank: 'junction' asked at traffic-light crossings,
-  // 'zebra' asked at zebra crossings, 'sg' is general Singapore road-rule trivia
-  // mixed in occasionally so both crossing types can surface it.
-  const QUIZ_BANK = [
-    { cat:'junction', q:"At a Singapore pedestrian crossing, the green man just appeared. What should you do?", options:["Cross - but still glance both ways for turning vehicles","Sprint across without looking","Wait for it to flash first"], correct:0, explain:"A steady green man means you can cross, but always check for vehicles turning into your path." },
-    { cat:'junction', q:"The pedestrian light shows a flashing green man. You haven't started yet. What now?", options:["Start crossing quickly to make it","Wait for the next steady green man","Cross diagonally to save time"], correct:1, explain:"Flashing green means there isn't enough time to start - wait for the next steady green man." },
-    { cat:'junction', q:"You press the crossing button but the red man is still showing. What should you do?", options:["Cross once the road looks clear","Wait for the green man - the button only makes a request","Press it repeatedly to speed it up"], correct:1, explain:"The button just registers your request; you must still wait for the green man before crossing." },
-    { cat:'junction', q:"What does the 'Green Man+' feature at some Singapore crossings do?", options:["Gives cyclists priority","Adds extra crossing time when you tap a concession card","Turns the light green instantly"], correct:1, explain:"Green Man+ gives seniors and persons with disabilities extra green-man time when they tap their card." },
-    { cat:'junction', q:"You're already crossing when the green man starts flashing. What should you do?", options:["Stop and wait in the middle","Keep moving and finish crossing promptly","Turn back to the kerb"], correct:1, explain:"If you've already started, keep going and finish - don't stop in the middle of the road." },
-    { cat:'zebra', q:"At a zebra crossing in Singapore, a car is slowing but hasn't stopped. What do you do?", options:["Step out, it's slowing anyway","Wait until it has fully stopped","Wave for it to hurry up"], correct:1, explain:"Even at a zebra crossing, wait until the vehicle has completely stopped before you step out." },
-    { cat:'zebra', q:"A driver waves you across before their car has fully stopped. What should you do?", options:["Cross quickly since they waved","Wait until the car is completely still","Cross behind the car instead"], correct:1, explain:"Never rely on a wave - wait until the vehicle has actually stopped moving." },
-    { cat:'zebra', q:"Where is the safest place to wait before stepping onto a zebra crossing?", options:["On the road edge, ready to go","A step back from the kerb","Between parked cars"], correct:1, explain:"Wait a step back from the kerb so you're clear of passing and turning traffic." },
-    { cat:'sg', q:"In Singapore, cars drive on the left. Which way should you look first?", options:["Left first","Right first","Straight ahead only"], correct:1, explain:"With left-hand traffic, the nearest cars come from your right - so look right first, then left, then right again." },
-    { cat:'sg', q:"Is it an offence to cross within 50 metres of a proper crossing without using it?", options:["No, it's fine if it's quiet","Yes - that's jaywalking and can be fined","Only during rush hour"], correct:1, explain:"Crossing within 50m of a pedestrian crossing without using it is jaywalking, an offence in Singapore." },
-    { cat:'sg', q:"You need to cross a busy expressway-like road. What's the safest option in Singapore?", options:["Dash across when there's a gap","Use an overhead bridge or underpass","Climb over the centre railing"], correct:1, explain:"Where there's an overhead bridge or underpass, use it - never cross fast roads or climb barriers." },
-    { cat:'sg', q:"What is a 'Silver Zone' in a Singapore neighbourhood?", options:["A car-free shopping street","An area with lower speed limits to protect elderly pedestrians","A special bus-only lane"], correct:1, explain:"Silver Zones near estates with many elderly residents use lower speed limits and calmer road designs for safety." },
-    { cat:'sg', q:"Before crossing, you're wearing earphones and looking at your phone. What should you do?", options:["Cross carefully while listening","Remove earphones and look up before crossing","Only pause the music"], correct:1, explain:"Distractions like phones and earphones stop you noticing traffic - put them away before you cross." },
-    { cat:'sg', q:"At a signalised junction with a green man, a car is turning left across your path. What do you do?", options:["Assume it must stop for you and keep walking","Make eye contact and let it pass if it hasn't seen you","Speed up to beat it"], correct:1, explain:"Turning vehicles may not have seen you - stay alert and don't assume they'll stop, even on a green man." }
-  ];
-
-  // Targeted follow-up questions, keyed by exactly how the player died last time.
-  // Shown as the very first quiz of the next run so the lesson lands right away.
-  const CONTEXT_QUESTIONS = {
-    car: { q:"Last time a car caught you. In Singapore, before stepping onto any road you should:", options:["Just go, cars will brake","Check the green man or that cars have fully stopped","Cross wherever there's a gap"], correct:1, explain:"Always confirm it's safe - a green man, or vehicles fully stopped - before you step out." },
-    offLane: { q:"Last time you strayed outside the marked crossing. What's the rule in Singapore?", options:["Any part of the road is fine","Stay within the marked crossing the whole way","Only the middle matters"], correct:1, explain:"Cross within the painted crossing lines - it's where drivers expect and look for pedestrians." },
-    notGreen: { q:"Last time you crossed before the green man. What should you wait for?", options:["A gap in traffic is enough","The steady green man to appear","The red man to flash"], correct:1, explain:"Wait for the steady green man - it means the traffic has been signalled to stop for you." },
-    edge: { q:"Last time you wandered off the path. Where should you stick to?", options:["Anywhere that's quiet","Pavements, and proper crossings when crossing","The road shoulder"], correct:1, explain:"Stay on the pavement and only cross at proper crossings - it keeps you where drivers expect you." },
-    ambulance: { q:"Last time an ambulance caught you on a green man. What's the lesson?", options:["Green man guarantees total safety","Emergency vehicles may cross even a red light - always look","Ambulances always stop for you"], correct:1, explain:"Emergency vehicles can proceed against the lights - a green man is your signal, not a guarantee, so keep looking." }
-  };
-
-  // Tips shown directly on the game-over screen (no question - just Ranger Zeb's take).
-  const DEATH_TIPS = {
-    car: "You stepped into the road while a car was still moving. Always double-check it's actually your turn before you go.",
-    offLane: "You strayed outside the marked crossing lane. Cars expect pedestrians to stay inside the lines the whole way across.",
-    notGreen: "You crossed before the green man appeared. Waiting for green means the cars have actually stopped for you.",
-    edge: "You wandered off the path. Sticking to the road and marked crossings keeps you where drivers expect you to be.",
-    ambulance: "An ambulance came through and didn't stop for the light. Emergency vehicles can override normal traffic rules - always take a quick look, even when it's supposed to be your turn."
-  };
+  // Preset question banks removed - questions are now generated by AI (OpenRouter).
 
   let quizActive = false;
-  // how often a crossing actually pops a safety question (rather than every
-  // single one) - keeps the run feeling less repetitive
-  const QUIZ_CHANCE = 0.45;
-  let quizCategoryQueues = { junction:[], zebra:[], sg:[] };
-  // full run tracker feeding the end-of-run Safety Report Card. Beyond quiz
-  // accuracy, we log the actual crossing behaviors that matter for road safety:
-  // did the player wait for a full green / full stop, did they stay in the lane,
-  // did they ever step out on a warning phase, etc.
-  let safetyStats = {
-    quizCorrect: 0,
-    quizWrong: 0,
-    crossings: 0,        // total crossings completed (junction + zebra)
-    safeCrossings: 0,    // crossings where they waited properly (green / fully-stopped car)
-    rushedCrossings: 0,  // crossings taken while it wasn't fully safe yet
-    junctionsCrossed: 0,
-    zebrasCrossed: 0,
-    jaywalks: 0          // times caught jaywalking (off-lane or before green)
-  };
-  let lastDeathType = null;      // carried across runs, used for context-aware follow-up
-  let pendingContextQuiz = null; // set right after a death, consumed by the next quiz
-  let pendingRequestCtrls = [];  // junction controllers waiting to actually be "requested"
-                                  // (i.e. start red->yellow->green) until the quiz is answered
+  const QUIZ_CHANCE = 0.75;
+  let lastDeathType = null;
+  let pendingFocus = null; // death type used to focus the next AI question
+  let pendingRequestCtrls = [];  
 
   const quizOverlayEl = document.getElementById('quizOverlay');
   const quizQuestionEl = document.getElementById('quizQuestion');
@@ -966,37 +1165,84 @@
   const quizFeedbackEl = document.getElementById('quizFeedback');
   const quizContextTagEl = document.getElementById('quizContextTag');
 
-  function refillCategoryQueue(cat){
-    const indices = QUIZ_BANK.map((item, i) => item.cat === cat ? i : -1).filter(i => i >= 0);
-    for (let i = indices.length - 1; i > 0; i--){
-      const j = Math.floor(Math.random() * (i + 1));
-      [indices[i], indices[j]] = [indices[j], indices[i]];
+  // ---- AI question generation (OpenRouter) + no-repeat-this-session ----
+  const askedThisSession = new Set();
+  function normQ(q){ return String(q||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+
+  const FOCUS_HINT = { car:'stepping onto the road while a car was still moving', offLane:'crossing outside the marked crossing lane', notGreen:'crossing before the green man appeared', edge:'wandering off the pavement', ambulance:'an emergency vehicle crossing against the light' };
+
+  async function fetchAIQuestion(category, focus){
+    if (!AI_QUESTIONS || !N8N_QUIZ_WEBHOOK_URL){ if (AI_QUESTIONS && !N8N_QUIZ_WEBHOOK_URL) console.warn('[AI quiz] No n8n webhook URL set - safety-check quiz will be skipped.'); return null; }
+    const avoid = Array.from(askedThisSession).slice(-14);
+    const focusHint = (focus && FOCUS_HINT[focus]) ? FOCUS_HINT[focus] : '';
+
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(), 9000);
+    try {
+      const res = await fetch(N8N_QUIZ_WEBHOOK_URL, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ category: category, avoid: avoid, focusHint: focusHint }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      if (!res.ok){
+        let body = ''; try { body = await res.text(); } catch(e){}
+        console.warn('[AI quiz] n8n webhook failed:', res.status, res.statusText, '-', body.slice(0, 220));
+        return null;
+      }
+      const obj = await res.json();
+      if (!obj || obj.error || typeof obj.q !== 'string' || !Array.isArray(obj.options) || obj.options.length !== 3){
+        console.warn('[AI quiz] n8n webhook returned an invalid question:', obj && obj.message);
+        return null;
+      }
+      const ci = Number(obj.correct);
+      if (!(ci >= 0 && ci <= 2)){ console.warn('[AI quiz] n8n webhook returned a bad correct-index.'); return null; }
+      const item = { cat:category, q:obj.q.trim(), options:obj.options.map(o=>String(o)), correct:ci, explain:String(obj.explain||'') };
+      if (askedThisSession.has(normQ(item.q))){ console.warn('[AI quiz] n8n gave a repeat question - skipping this round.'); return null; }
+      console.log('[AI quiz] question generated via n8n ->', item.q);
+      item.__ai = true;
+      return item;
+    } catch(e){
+      clearTimeout(timeout);
+      console.warn('[AI quiz] n8n webhook error (offline, CORS, or opened as a file:// instead of a server?):', e && e.message);
+      return null;
     }
-    quizCategoryQueues[cat] = indices;
   }
 
-  function pickQuizItem(category){
-    if (pendingContextQuiz){
-      const item = pendingContextQuiz;
-      pendingContextQuiz = null;
-      return { item, isContext:true };
-    }
-    if (quizCategoryQueues[category].length === 0) refillCategoryQueue(category);
-    const qi = quizCategoryQueues[category].pop();
-    return { item: QUIZ_BANK[qi], isContext:false };
-  }
-
-  function askQuiz(ctrl, category){
+  async function askQuiz(ctrl, category){
     if (quizActive || ctrl.quizAsked) return;
     ctrl.quizAsked = true;
-    const { item, isContext } = pickQuizItem(category);
-
     quizActive = true;
-    quizContextTagEl.textContent = isContext ? "Let's revisit that..." : "SAFETY CHECK";
-    quizQuestionEl.textContent = item.q;
+
+    const focus = pendingFocus; pendingFocus = null;
+
+    // Show the overlay immediately with a loading state while the AI generates a question.
+    quizContextTagEl.textContent = 'SAFETY CHECK';
+    quizQuestionEl.textContent = 'Thinking of a question\u2026';
     quizFeedbackEl.textContent = '';
     quizOptionsEl.innerHTML = '';
+    quizOverlayEl.style.display = 'flex';
+    Sound.play('quizOpen');
 
+    const item = await fetchAIQuestion(category, focus);
+
+    // AI-only: if no question could be generated (offline / no key / rate-limited),
+    // close the popup and let the player continue instead of showing a preset.
+    if (!item){
+      quizOverlayEl.style.display = 'none';
+      quizActive = false;
+      if (pendingRequestCtrls.length){ pendingRequestCtrls.forEach(c => { c.requested = true; }); pendingRequestCtrls = []; }
+      return;
+    }
+
+    // If the run ended or the overlay was closed while waiting, abort quietly.
+    if (!quizActive || quizOverlayEl.style.display === 'none') return;
+
+    askedThisSession.add(normQ(item.q));
+    quizContextTagEl.textContent = 'SAFETY CHECK';
+    quizQuestionEl.textContent = item.q;
+    quizOptionsEl.innerHTML = '';
     item.options.forEach((opt, idx) => {
       const btn = document.createElement('button');
       btn.className = 'quizOptionBtn';
@@ -1004,8 +1250,6 @@
       btn.addEventListener('click', () => answerQuiz(idx, item));
       quizOptionsEl.appendChild(btn);
     });
-
-    quizOverlayEl.style.display = 'flex';
   }
 
   function answerQuiz(chosenIdx, item){
@@ -1017,37 +1261,42 @@
     if (!correct) buttons[chosenIdx].classList.add('wrong');
 
     if (correct){
-      score += 3;
-      safetyStats.quizCorrect++;
-      updateScoreHUD();
+      scoreAdjust += 3;
+      recomputeScore();
       quizFeedbackEl.textContent = 'Correct! +3 points - ' + item.explain;
+      Sound.play('correct');
     } else {
-      safetyStats.quizWrong++;
       quizFeedbackEl.textContent = item.explain;
+      Sound.play('wrong');
     }
 
+    // Explanations from the AI are now prompted to stay short (one brief
+    // clause), so a tighter, mostly-fixed read time works - still scales a
+    // little for the rare longer message.
+    const readMs = Math.min(3200, Math.max(1800, 1100 + quizFeedbackEl.textContent.length * 22));
     setTimeout(() => {
       quizOverlayEl.style.display = 'none';
       quizActive = false;
-      // only now does the light actually get "requested" - so red->yellow->green
-      // never starts until the player has answered the safety question
       if (pendingRequestCtrls.length){
         pendingRequestCtrls.forEach(ctrl => { ctrl.requested = true; });
         pendingRequestCtrls = [];
       }
-    }, 1900);
+    }, readMs);
   }
 
   // ---------- game state ----------
-  let gameState = 'menu'; // menu | playing | gameover
+  let gameState = 'menu'; 
   let col = 0, row = 0;
-  let posX = 0, posZ = 0; // world position
-  let facing = 0; // rotation Y
-  let hop = null; // {fromX,fromZ,toX,toZ,t,dur,fromFacing,toFacing}
+  let posX = 0, posZ = 0; 
+  let facing = 0; 
+  let hop = null; 
   let score = 0;
+  let furthestRow = 0;  
+  let scoreAdjust = 0;  
   let best = 0;
   let deathTimer = 0;
   let deathType = null;
+  let ambientHornTimer = rand(5, 10); 
 
   function resetGame(){
     rows = {};
@@ -1060,9 +1309,14 @@
     facing = 0;
     hop = null;
     score = 0;
+    furthestRow = 0;
+    scoreAdjust = 0;
     deathTimer = 0; deathType = null;
+    ambientHornTimer = rand(5, 10);
     quizActive = false;
-    safetyStats = { quizCorrect:0, quizWrong:0, crossings:0, safeCrossings:0, rushedCrossings:0, junctionsCrossed:0, zebrasCrossed:0, jaywalks:0 };
+    askedThisSession.clear();
+    pendingFocus = null;
+    { const a=document.getElementById('certBtn'); if(a) a.style.display='none'; const b=document.getElementById('certBtnOver'); if(b) b.style.display='none'; }
     pendingRequestCtrls = [];
     quizOverlayEl.style.display = 'none';
     ensureRowsUpTo(12);
@@ -1074,16 +1328,24 @@
     resetBuddyAgent();
   }
 
+  function recomputeScore(){
+    if (furthestRow + scoreAdjust < 0) scoreAdjust = -furthestRow;
+    score = Math.max(0, furthestRow + scoreAdjust);
+    updateScoreHUD();
+  }
+
   function updateScoreHUD(){
     document.getElementById('score').textContent = score;
     document.getElementById('best').textContent = 'BEST ' + best;
+    const cb = document.getElementById('certBtn');
+    if (cb) cb.style.display = (score >= CERT_MIN_SCORE) ? 'block' : 'none';
   }
 
   const ROAD_LIKE = new Set(['junction', 'zebra']);
 
   function isBlocked(c, r){
     const rd = rows[r];
-    if (!rd) return true; // no ground there (either before the start or already cleaned up behind us) - can't go there
+    if (!rd) return true; 
     if (c < COL_MIN || c > COL_MAX) return true;
     if (rd.type === 'grass' && rd.blocked.has(c)) return true;
     return false;
@@ -1091,15 +1353,13 @@
 
   function tryMove(dc, dr){
     if (gameState !== 'playing') return;
-    if (hop) return; // already hopping
-    if (quizActive) return; // quiz has the floor
+    if (hop) return; 
+    if (quizActive) return; 
     const nc = col + dc;
     const nr = row + dr;
     if (isBlocked(nc, nr)) return;
     ensureRowsUpTo(nr + 8);
 
-    // first approach to a zebra crossing: Ranger Zeb sometimes asks a quick
-    // question before you step out (not every time, so it feels less repetitive)
     if (dr === 1 && rows[nr] && rows[nr].type === 'zebra' && !rows[nr].quizChecked){
       rows[nr].quizChecked = true;
       if (Math.random() < QUIZ_CHANCE){
@@ -1119,48 +1379,37 @@
     while (diff > Math.PI) diff -= Math.PI*2;
     while (diff < -Math.PI) diff += Math.PI*2;
     hop.toFacing = hop.fromFacing + diff;
+    Sound.play('hop');
 
     col = nc; row = nr;
 
-    // zebra crossing bonus: reward waiting for the car to fully stop before stepping out
     if (dr === 1 && rows[nr] && rows[nr].type === 'zebra'){
       const allStopped = rows[nr].cars.every(car => car.userData.speed < 0.05);
-      score += allStopped ? 5 : 1;
-      // log this crossing behavior once, the first time onto this zebra row
+      scoreAdjust += allStopped ? 5 : 1;
       if (!rows[nr].crossLogged){
         rows[nr].crossLogged = true;
-        safetyStats.crossings++;
-        safetyStats.zebrasCrossed++;
         if (allStopped){
-          safetyStats.safeCrossings++; rows[nr].wasSafeCrossing = true;
           buddySay("Nice - you waited for the cars to fully stop. That's the way!", 'tip', 2600);
-        } else {
-          safetyStats.rushedCrossings++;
+          Sound.play('safe');
         }
       }
     }
-    // junction crossing: safe if the light was fully green when we stepped onto it
     if (dr === 1 && rows[nr] && rows[nr].type === 'junction'){
       const rd = rows[nr];
       if (!rd.crossLogged){
         rd.crossLogged = true;
-        safetyStats.crossings++;
-        safetyStats.junctionsCrossed++;
         if (rd.light && rd.light.state === 'green'){
-          safetyStats.safeCrossings++; rd.wasSafeCrossing = true;
           buddySay("Green man's on and you're in the lane - perfect crossing!", 'tip', 2600);
-        } else {
-          safetyStats.rushedCrossings++;
+          Sound.play('safe');
         }
       }
     }
 
-    if (row > score) score = row;
-    updateScoreHUD();
+    if (row > furthestRow) furthestRow = row;
+    recomputeScore();
     cleanupOldRows(row);
   }
 
-  // ---------- pedestrian crossing request ----------
   function findAdjacentJunctionControllers(){
     const seen = new Set();
     let forwardMatch = null, backwardMatch = null;
@@ -1169,8 +1418,8 @@
       if (rd.type !== 'junction' || seen.has(rd.light)) return;
       seen.add(rd.light);
       const ctrl = rd.light;
-      if (row === ctrl.startRow - 1) forwardMatch = ctrl;   // crossing ahead of us
-      if (row === ctrl.endRow + 1) backwardMatch = ctrl;    // crossing behind us
+      if (row === ctrl.startRow - 1) forwardMatch = ctrl;   
+      if (row === ctrl.endRow + 1) backwardMatch = ctrl;    
     });
     return { forwardMatch, backwardMatch };
   }
@@ -1181,7 +1430,6 @@
     return inFrontOfLane && ctrl.state === 'red' && !ctrl.requested;
   }
 
-  // used for the on-screen hint - true if pressing E would do something right now
   function findNearestJunctionController(){
     const { forwardMatch, backwardMatch } = findAdjacentJunctionControllers();
     const fwdReady = junctionIsRequestable(forwardMatch);
@@ -1194,16 +1442,11 @@
     if (gameState !== 'playing' || hop) return;
     if (quizActive) return;
     const { forwardMatch, backwardMatch } = findAdjacentJunctionControllers();
-    // queue whichever side(s) are actually waiting on red - covers the case of
-    // standing on a single grass tile sandwiched between two crossings.
     const toQueue = [];
     if (junctionIsRequestable(forwardMatch)) toQueue.push(forwardMatch);
     if (junctionIsRequestable(backwardMatch)) toQueue.push(backwardMatch);
     if (!toQueue.length) return;
 
-    // only sometimes ask a safety question (less repetitive). When we do ask,
-    // the light stays red until the quiz is answered. When we don't, request
-    // the light immediately so pressing E still starts the crossing right away.
     const askThisTime = toQueue.some(c => !c.quizChecked);
     toQueue.forEach(c => { c.quizChecked = true; });
     if (askThisTime && Math.random() < QUIZ_CHANCE){
@@ -1214,7 +1457,6 @@
     }
   }
 
-  // ---------- input ----------
   window.addEventListener('keydown', (e)=>{
     if (gameState !== 'playing') return;
     switch(e.key){
@@ -1235,7 +1477,6 @@
   document.getElementById('btnLeft').addEventListener('click', ()=> tryMove(1,0));
   document.getElementById('btnRight').addEventListener('click', ()=> tryMove(-1,0));
 
-  // swipe
   let touchStart = null;
   window.addEventListener('touchstart', (e)=>{
     if (e.target.closest('#touchControls')) return;
@@ -1269,103 +1510,25 @@
   crossBtnEl.addEventListener('touchstart', e=>{ e.preventDefault(); requestCrossing(); });
   crossBtnEl.addEventListener('click', ()=> requestCrossing());
 
-  // ---------- safety report card ----------
-  // turns the run's tracked behaviors into a letter grade + a breakdown. The
-  // grade weights actual crossing behavior more heavily than quiz answers,
-  // since doing the right thing matters more than knowing the right answer.
-  function computeReportCard(){
-    const s = safetyStats;
-    const totalQuiz = s.quizCorrect + s.quizWrong;
-    const quizPct = totalQuiz > 0 ? s.quizCorrect / totalQuiz : null;
-    const crossPct = s.crossings > 0 ? s.safeCrossings / s.crossings : null;
+  const CONFIG = { N8N_CERT_WEBHOOK_URL: N8N_CERT_WEBHOOK_URL };
 
-    // blended safety score 0..1: crossing behavior is 70%, quiz knowledge 30%.
-    // if one side has no data, the other carries full weight.
-    let scorePct;
-    if (crossPct !== null && quizPct !== null) scorePct = crossPct * 0.7 + quizPct * 0.3;
-    else if (crossPct !== null) scorePct = crossPct;
-    else if (quizPct !== null) scorePct = quizPct;
-    else scorePct = null; // no crossings, no quizzes - graded on survival only
-
-    let grade, gradeClass, headline;
-    if (scorePct === null){ grade = '-'; gradeClass='gradeMid'; headline = "Not much crossing this run - give it another go!"; }
-    else if (scorePct >= 0.9){ grade = 'A'; gradeClass='gradeGood'; headline = "Excellent road sense! You crossed like a pro."; }
-    else if (scorePct >= 0.75){ grade = 'B'; gradeClass='gradeGood'; headline = "Solid and safe. A few rushed moments to smooth out."; }
-    else if (scorePct >= 0.55){ grade = 'C'; gradeClass='gradeMid'; headline = "Getting there - remember to wait for it to be fully safe."; }
-    else if (scorePct >= 0.35){ grade = 'D'; gradeClass='gradeLow'; headline = "Slow down and wait for the full signal before crossing."; }
-    else { grade = 'F'; gradeClass='gradeLow'; headline = "Lots of rushing out there. Patience keeps you safe!"; }
-
-    return { s, totalQuiz, quizPct, crossPct, scorePct, grade, gradeClass, headline };
-  }
-
-  // returns a compact object suitable for sending to the n8n / email pipeline
-  function buildReportPayload(card, type){
-    return {
-      finalScore: score,
-      best,
-      deathCause: type,
-      grade: card.grade,
-      safetyScorePct: card.scorePct === null ? null : Math.round(card.scorePct * 100),
-      crossings: card.s.crossings,
-      safeCrossings: card.s.safeCrossings,
-      rushedCrossings: card.s.rushedCrossings,
-      junctionsCrossed: card.s.junctionsCrossed,
-      zebrasCrossed: card.s.zebrasCrossed,
-      jaywalks: card.s.jaywalks || 0,
-      quizCorrect: card.s.quizCorrect,
-      quizTotal: card.totalQuiz,
-      timestamp: new Date().toISOString()
-    };
-  }
-
-  // Optional: POST each end-of-run report to an n8n webhook (Webhook -> Code ->
-  // If -> Email). Leave the URL blank to disable - the game works fine without
-  // it. Paste your n8n Production webhook URL here and attach SMTP creds in n8n.
-  const CONFIG = { N8N_WEBHOOK_URL: '' };
-  function sendSessionReport(payload){
-    if (!CONFIG.N8N_WEBHOOK_URL) return; // disabled until a URL is set
-    try {
-      fetch(CONFIG.N8N_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        keepalive: true // let it complete even as the page/tab settles
-      }).catch(()=>{}); // network hiccups shouldn't ever interrupt gameplay
-    } catch(e){ /* no-op */ }
-  }
-
-  // ---------- jaywalk penalty ----------
-  const JAYWALK_PENALTY = 20; // points removed per jaywalking crossing
+  const JAYWALK_PENALTY = 10;
   function penaliseJaywalk(rd, kind){
-    if (rd.jaywalkPenalised) return; // only once per crossing, not every frame
+    if (rd.jaywalkPenalised) return;
     rd.jaywalkPenalised = true;
 
-    score = Math.max(0, score - JAYWALK_PENALTY);
-    updateScoreHUD();
+    scoreAdjust -= JAYWALK_PENALTY;
+    recomputeScore();
+    rd.crossLogged = true;
 
-    // this counts as an unsafe crossing for the safety score. If it wasn't
-    // already logged as a completed crossing, log it here as a rushed one.
-    if (!rd.crossLogged){
-      rd.crossLogged = true;
-      safetyStats.crossings++;
-      if (rd.type === 'junction') safetyStats.junctionsCrossed++;
-      else if (rd.type === 'zebra') safetyStats.zebrasCrossed++;
-    } else if (rd.wasSafeCrossing){
-      // it had been logged as safe - downgrade it now that we've caught a jaywalk
-      safetyStats.safeCrossings = Math.max(0, safetyStats.safeCrossings - 1);
-      rd.wasSafeCrossing = false;
-    }
-    safetyStats.rushedCrossings++;
-    safetyStats.jaywalks = (safetyStats.jaywalks || 0) + 1;
-
-    // buddy agent calls out exactly what went wrong, with the SG-specific rule
     const msg = kind === 'notGreen'
       ? `Jaywalking! Wait for the green man before you step out. -${JAYWALK_PENALTY} pts`
       : `Jaywalking! In Singapore you must cross within the marked lane. -${JAYWALK_PENALTY} pts`;
     buddySay(msg, 'alert', 3200);
+    Sound.play('jaywalk');
+    Sound.play('honk');
   }
 
-  // ---------- game over ----------
   function triggerGameOver(type){
     if (gameState !== 'playing') return;
     gameState = 'gameover';
@@ -1374,29 +1537,25 @@
     crossHintEl.classList.remove('show');
     if (buddyMsgTimer) clearTimeout(buddyMsgTimer);
     if (buddyIdleTimer) clearTimeout(buddyIdleTimer);
+    Sound.stopEngineHum();
+    if (type === 'ambulance') Sound.play('siren');
+    Sound.play('splat');
     if (score > best) best = score;
     updateScoreHUD();
 
     lastDeathType = type;
-    pendingContextQuiz = CONTEXT_QUESTIONS[type] || null;
+    pendingFocus = type;
 
     setTimeout(()=>{
-      const card = computeReportCard();
       document.getElementById('finalScore').textContent = score;
 
-      const buddyTipEl = document.getElementById('buddyTip');
-      buddyTipEl.textContent = DEATH_TIPS[type] || "Stay alert out there - every crossing deserves a careful look.";
-
-      // safety stats still computed and sent to the n8n webhook / email pipeline
-      // (CONFIG.N8N_WEBHOOK_URL) even though the on-screen report card is hidden
-      const payload = buildReportPayload(card, type);
-      if (typeof sendSessionReport === 'function') sendSessionReport(payload);
+      const certOver = document.getElementById('certBtnOver');
+      if (certOver) certOver.style.display = (score >= CERT_MIN_SCORE) ? 'block' : 'none';
 
       document.getElementById('gameOverScreen').style.display = 'flex';
     }, 550);
   }
 
-  // ---------- main loop ----------
   let lastTime = performance.now();
   let elapsedTime = 0;
 
@@ -1408,12 +1567,38 @@
     lastTime = now;
     elapsedTime += dt;
 
-    // update rows (cars + traffic lights)
     const updatedControllers = new Set();
-    const BRAKING_ZONE = 3.6;   // distance before the line where cars start slowing
-    const MAX_ACCEL = 6.5;      // units/sec^2 for smooth speed changes
-    const CAR_GAP = 1.5;        // minimum nose-to-tail spacing so queued cars don't overlap
-    const beaconPulse = 0.25 + 0.75 * Math.abs(Math.sin(elapsedTime * Math.PI / 1.3)); // slow flash
+    const BRAKING_ZONE = 3.6;   
+    const MAX_ACCEL = 6.5;      
+    const CAR_GAP = 1.5;        
+    const beaconPulse = 0.25 + 0.75 * Math.abs(Math.sin(elapsedTime * Math.PI / 1.3)); 
+
+    if (gameState === 'playing'){
+      let movingNearby = 0;
+      let nearestProximity = 0; 
+      for (let dr = -2; dr <= 2; dr++){
+        const rd = rows[row + dr];
+        if (!rd || !ROAD_LIKE.has(rd.type) || !rd.cars) continue;
+        const rowFalloff = 1 - Math.abs(dr) * 0.35; 
+        rd.cars.forEach(c => {
+          if (Math.abs(c.userData.speed) > 0.4) movingNearby++;
+          const dx = Math.abs(c.position.x - posX);
+          if (dx < 4.5){
+            const prox = (1 - dx / 4.5) * rowFalloff;
+            if (prox > nearestProximity) nearestProximity = prox;
+          }
+        });
+      }
+      Sound.setEngineLevel(nearestProximity);
+
+      ambientHornTimer -= dt;
+      if (ambientHornTimer <= 0){
+        if (movingNearby > 0) Sound.play('honk');
+        ambientHornTimer = rand(5, 10);
+      }
+    } else {
+      Sound.setEngineLevel(0);
+    }
     Object.keys(rows).forEach(k=>{
       const rd = rows[k];
       if (rd.type === 'junction'){
@@ -1421,10 +1606,9 @@
           updateLightController(rd.light, dt);
           updatedControllers.add(rd.light);
         }
-        // red = cars flow freely, yellow/green = must stop right at the edge of the pedestrian lane
         const mustStop = rd.light.state !== 'red';
         const { laneCol, laneHalfWidth } = rd.light;
-        const STOP_MARGIN = 0.7; // extra buffer so cars halt short of the edge line, not right on it
+        const STOP_MARGIN = 0.7; 
         const stopLine = rd.dir > 0 ? (laneCol - laneHalfWidth - 0.5 - STOP_MARGIN) : (laneCol + laneHalfWidth + 0.5 + STOP_MARGIN);
 
         const ordered = rd.cars.slice().sort((a,b)=>
@@ -1440,10 +1624,6 @@
             targetSpeed = rd.speed * Math.max(0, distToLine / BRAKING_ZONE);
           }
 
-          // physically-correct safe-following speed: the fastest this car can go
-          // and still be able to brake down to the car ahead's speed before
-          // closing the gap - this prevents overlap by construction, no position
-          // snapping needed, so it always looks like natural, gradual braking
           if (idx > 0){
             const ahead = ordered[idx-1];
             const gap = rd.dir > 0 ? (ahead.position.x - car.position.x) : (car.position.x - ahead.position.x);
@@ -1459,13 +1639,10 @@
 
           car.position.x += rd.dir * car.userData.speed * dt;
 
-          // never let a braking car creep past the lane edge
           if (mustStop && !passedLine){
             const newDist = rd.dir > 0 ? (stopLine - car.position.x) : (car.position.x - stopLine);
             if (newDist < 0){ car.position.x = stopLine; car.userData.speed = 0; }
           }
-          // hard floor against any residual numerical creep - the speed formula above
-          // should already prevent this in practice, this just guarantees it exactly
           if (idx > 0){
             const ahead = ordered[idx-1];
             if (rd.dir > 0 && car.position.x > ahead.position.x - CAR_GAP){ car.position.x = ahead.position.x - CAR_GAP; if (car.userData.speed > ahead.userData.speed) car.userData.speed = ahead.userData.speed; }
@@ -1473,22 +1650,16 @@
           }
         });
 
-        // wrap cars around once they're far off-screen, staggered so they enter
-        // the screen one at a time instead of clumping together at the edge
         recycleCars(rd);
       } else if (rd.type === 'zebra'){
-        // slow flashing Belisha beacon (aesthetic only, doesn't affect car behavior)
         if (rd.beaconMats){
           rd.beaconMats.forEach(mat=>{ mat.emissiveIntensity = beaconPulse; });
         }
-        // no traffic light here - cars yield (brake to a full stop) only while the
-        // player is actually lined up with the crossing lane (same rule as the
-        // E-button proximity check), waiting right before it or already on it
         const zebraRow = parseInt(k);
         const { laneCol, laneHalfWidth } = rd;
         const inLane = Math.abs(col - laneCol) <= laneHalfWidth;
         const mustStop = gameState === 'playing' && inLane && (row === zebraRow - 1 || row === zebraRow || row === zebraRow + 1);
-        const ZEBRA_STOP_MARGIN = 0.5; // stop a bit short of the lane edge, not right on it
+        const ZEBRA_STOP_MARGIN = 0.5; 
         const stopLine = rd.dir > 0 ? (laneCol - laneHalfWidth - 0.5 - ZEBRA_STOP_MARGIN) : (laneCol + laneHalfWidth + 0.5 + ZEBRA_STOP_MARGIN);
 
         const zebraOrdered = rd.cars.slice().sort((a,b)=>
@@ -1500,13 +1671,8 @@
           const passedLine = distToLine < 0;
 
           if (!mustStop || passedLine){
-            car.userData.zebraCommitted = undefined; // reset once there's nothing to react to
+            car.userData.zebraCommitted = undefined; 
           } else if (car.userData.zebraCommitted === undefined){
-            // decide ONCE, the first moment a stop is required: does this car have
-            // enough room left to brake safely at its current speed? If not, it just
-            // can't stop in time and will barrel through - same as a real driver
-            // caught off guard. Re-checking every frame as distance shrinks would
-            // wrongly flip a car that's already braking properly into "too late".
             const requiredStopDist = 0.6 + car.userData.speed * 0.25;
             car.userData.zebraCommitted = distToLine >= requiredStopDist;
           }
@@ -1517,8 +1683,6 @@
             targetSpeed = rd.speed * Math.max(0, distToLine / BRAKING_ZONE);
           }
 
-          // physically-correct safe-following speed - prevents overlap by
-          // construction instead of snapping position, so braking always looks natural
           if (idx > 0){
             const ahead = zebraOrdered[idx-1];
             const gap = rd.dir > 0 ? (ahead.position.x - car.position.x) : (car.position.x - ahead.position.x);
@@ -1538,8 +1702,6 @@
             const newDist = rd.dir > 0 ? (stopLine - car.position.x) : (car.position.x - stopLine);
             if (newDist < 0){ car.position.x = stopLine; car.userData.speed = 0; }
           }
-          // hard floor against any residual numerical creep - the speed formula above
-          // should already prevent this in practice, this just guarantees it exactly
           if (idx > 0){
             const ahead = zebraOrdered[idx-1];
             if (rd.dir > 0 && car.position.x > ahead.position.x - CAR_GAP){ car.position.x = ahead.position.x - CAR_GAP; if (car.userData.speed > ahead.userData.speed) car.userData.speed = ahead.userData.speed; }
@@ -1547,22 +1709,23 @@
           }
         });
 
-        // wrap cars around once they're far off-screen, staggered so they enter
-        // the screen one at a time instead of clumping together at the edge
         recycleCars(rd);
       }
     });
 
-    // rare special event: ambulances ignore the light entirely and just drive
-    // straight through at a fixed speed - updated separately from normal
-    // per-row traffic since they don't follow/brake like regular cars
     emergencyVehicles = emergencyVehicles.filter(ev => {
       if (!rows[ev.row]){
-        return false; // its row was cleaned up behind the player, drop it
+        return false; 
       }
       ev.mesh.position.x += ev.dir * ev.speed * dt;
       if (ev.mesh.userData.beaconMat){
         ev.mesh.userData.beaconMat.emissiveIntensity = 0.35 + 0.65 * Math.abs(Math.sin(elapsedTime * 10));
+      }
+      if (!ev.sirened && gameState === 'playing'
+          && ev.mesh.position.x > COL_MIN - 2 && ev.mesh.position.x < COL_MAX + 2
+          && Math.abs(ev.row - row) <= 3){
+        ev.sirened = true;
+        Sound.play('siren');
       }
       if (ev.mesh.position.x > COL_MAX + 6 || ev.mesh.position.x < COL_MIN - 6){
         rows[ev.row].group.remove(ev.mesh);
@@ -1572,7 +1735,6 @@
     });
 
     if (gameState === 'playing'){
-      // hop animation
       if (hop){
         hop.t += dt / hop.dur;
         const t = Math.min(hop.t, 1);
@@ -1594,7 +1756,6 @@
       player.rotation.y = facing;
       playerShadow.position.set(posX, 0.02, posZ);
 
-      // collision checks
       const rd = rows[row];
       if (rd && ROAD_LIKE.has(rd.type) && !hop){
         for (const car of rd.cars){
@@ -1603,10 +1764,6 @@
             break;
           }
         }
-        // jaywalking (crossing outside the marked lane, or before the light is
-        // green) no longer kills - instead it's penalised once per crossing:
-        // points come off and the safety score takes a hit. The real risk is
-        // that cars are still live while you jaywalk, so it stays dangerous.
         if (rd.type === 'junction'){
           const offLane = Math.abs(col - rd.light.laneCol) > rd.light.laneHalfWidth;
           const beforeGreen = rd.light.state !== 'green';
@@ -1621,8 +1778,6 @@
           }
         }
       }
-      // ambulances ignore the light/lane rules entirely - checked separately
-      // since they aren't part of any row's normal car list
       if (!hop && gameState === 'playing'){
         for (const ev of emergencyVehicles){
           if (ev.row === row && Math.abs(ev.mesh.position.x - posX) < 0.62){
@@ -1631,19 +1786,16 @@
           }
         }
       }
-      // side bounds fail-safe - stepping fully off the edge of the world still ends the run
       if (posX < COL_MIN - 0.5 || posX > COL_MAX + 0.5){
         triggerGameOver('edge');
       }
 
-      // camera follow - telephoto style: track a target point, hold the
-      // camera at a fixed distance/direction from it, and look straight at it
       const camTarget = new THREE.Vector3(posX*0.62, 0.6, posZ + 0.6);
       camera.position.copy(camTarget).addScaledVector(CAM_DIR, CAM_DIST);
       camera.lookAt(camTarget);
+      sun.position.set(posX - 20, 30, posZ - 10); // keep the sun a fixed offset from the player so the shadow frustum always covers them
       sun.target.position.set(posX, 0, posZ);
 
-      // crossing hint visibility - only once the player has actually reached the light
       const near = findNearestJunctionController();
       const showHint = near.atLight && near.ctrl.state === 'red' && !near.ctrl.requested;
       crossHintEl.classList.toggle('show', !!showHint);
@@ -1659,6 +1811,9 @@
   // ---------- UI wiring ----------
   document.getElementById('startBtn').addEventListener('click', ()=>{
     document.getElementById('startScreen').style.display = 'none';
+    Sound.resume(); 
+    Sound.play('start');
+    Sound.startEngineHum();
     resetGame();
     gameState = 'playing';
   });
@@ -1666,16 +1821,78 @@
     document.getElementById('gameOverScreen').style.display = 'none';
     chickenMesh.scale.set(1,1,1);
     chickenMesh.position.y = 0;
+    Sound.resume();
+    Sound.play('start');
+    Sound.startEngineHum();
     resetGame();
     gameState = 'playing';
   });
 
-  // pre-generate a few rows for the menu background
-  resetGame();
+  // ---------- certificate of completion ----------
+  const certOverlayEl = document.getElementById('certOverlay');
+  const certNameEl    = document.getElementById('certName');
+  const certEmailEl   = document.getElementById('certEmail');
+  const certStatusEl  = document.getElementById('certStatus');
+  function openCertModal(){
+    if (!certOverlayEl) return;
+    certStatusEl.textContent = '';
+    certOverlayEl.style.display = 'flex';
+    setTimeout(()=>{ if (certNameEl) certNameEl.focus(); else if (certEmailEl) certEmailEl.focus(); }, 50);
+  }
+  function closeCertModal(){ if (certOverlayEl) certOverlayEl.style.display = 'none'; }
+  async function submitCertificate(){
+    const name  = ((certNameEl && certNameEl.value) || '').trim();
+    const email = ((certEmailEl && certEmailEl.value) || '').trim();
+    if (name.length < 2){ certStatusEl.textContent = 'Please enter your name.'; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ certStatusEl.textContent = 'Please enter a valid email address.'; return; }
+    if (!CONFIG.N8N_CERT_WEBHOOK_URL){ certStatusEl.textContent = 'Certificate service is not set up yet (no n8n URL in the code).'; return; }
+    const now = new Date();
+    const payload = {
+      // Fields the n8n workflow reads (secret gate + congratulation + Gmail):
+      secret: N8N_CERT_SECRET,
+      name: name,
+      email: email,
+      score: score,
+      // Fields for filling the certificate template:
+      participantName: name,
+      challengeName: CERT_CHALLENGE,
+      issuerName: CERT_ISSUER,
+      date: now.toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' }),
+      certId: 'NV-' + now.getFullYear() + '-' + Date.now().toString(36).toUpperCase().slice(-6) + '-' + Math.floor(1000 + Math.random()*9000),
+      requestedAt: now.toISOString()
+    };
+    certStatusEl.textContent = 'Sending\u2026';
+    try {
+      const res = await fetch(CONFIG.N8N_CERT_WEBHOOK_URL, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) certStatusEl.textContent = 'Sent! Check your inbox (and spam) for your certificate.';
+      else certStatusEl.textContent = 'Could not send (error ' + res.status + '). Please try again.';
+    } catch(e){ certStatusEl.textContent = 'Could not reach the certificate service. Check the n8n URL / CORS / your connection.'; }
+  }
+  ['certBtn','certBtnOver'].forEach(id => { const b = document.getElementById(id); if (b) b.addEventListener('click', openCertModal); });
+  { const sBtn = document.getElementById('certSend');  if (sBtn) sBtn.addEventListener('click', submitCertificate); }
+  { const cBtn = document.getElementById('certClose'); if (cBtn) cBtn.addEventListener('click', closeCertModal); }
+
+  const muteBtn = document.getElementById('muteBtn');
+  if (muteBtn){
+    muteBtn.addEventListener('click', ()=>{
+      const nowMuted = Sound.toggleMute();
+      muteBtn.textContent = nowMuted ? '🔇' : '🔊';
+      muteBtn.classList.toggle('muted', nowMuted);
+    });
+  }
+
+  // --- THIS IS THE CRITICAL FIX AT THE VERY BOTTOM ---
   gameState = 'menu';
   const menuTarget = new THREE.Vector3(0, 0.6, 0.6);
   camera.position.copy(menuTarget).addScaledVector(CAM_DIR, CAM_DIST);
   camera.lookAt(menuTarget);
+
+  loadAllModels(()=>{
+    console.log('Car models loaded successfully! Building map now...');
+    resetGame(); 
+    gameState = 'menu';
+    console.log('Car models ready:', Object.keys(modelCache).join(', '));
+  });
 
   animate();
 })();

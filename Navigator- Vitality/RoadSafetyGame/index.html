@@ -18,9 +18,12 @@
     <div id="score">0</div>
     <div id="best">BEST 0</div>
   </div>
+  <button id="muteBtn" aria-label="Toggle sound">🔊</button>
 </div>
 
 <div id="crossHint"><span class="key">E</span>Press to cross</div>
+
+<button id="certBtn" style="display:none;">🎓 Get Certificate</button>
 
 <div id="buddyAgent">
   <div class="buddyAgentAvatar">🦝</div>
@@ -65,27 +68,37 @@
     <h1>SPLAT!</h1>
     <div class="sub">Nice run, champ.</div>
     <div class="bigScore" id="finalScore">0</div>
-    <div class="buddyRow buddyRowReport">
-      <div class="buddyAvatar">🦝</div>
-      <div class="buddyNameCol">
-        <div class="buddyName">Ranger Zeb says</div>
-        <div id="buddyTip" class="buddyTip">Stay alert out there!</div>
-      </div>
-    </div>
+    <button class="playBtn certClaim" id="certBtnOver" style="display:none;">🎓 GET CERTIFICATE</button>
     <button class="playBtn" id="retryBtn">PLAY AGAIN</button>
   </div>
 </div>
 
-<div id="touchControls">
-  <button class="tbtn" id="btnUp">↑</button>
-  <button class="tbtn" id="btnLeft">←</button>
-  <button class="tbtn" id="btnDown">↓</button>
-  <button class="tbtn" id="btnRight">→</button>
+<div id="certOverlay" style="display:none;">
+  <div class="panel certPanel">
+    <h2 class="certTitle">🎓 Get your certificate</h2>
+    <div class="sub">Enter your name and email and we'll send your Road Safety certificate of completion.</div>
+    <input id="certName" type="text" autocomplete="name" maxlength="40" placeholder="Your full name" />
+    <input id="certEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@gmail.com" />
+    <div id="certStatus" class="certStatus"></div>
+    <div class="certBtnRow">
+      <button class="playBtn" id="certSend">SEND</button>
+      <button class="playBtn certGhost" id="certClose">CANCEL</button>
+    </div>
+  </div>
 </div>
 
-<button id="btnCross">CROSS</button>
+<button id="btnCross">Cross</button>
+<div id="touchControls">
+  <button class="tbtn" id="btnUp">▲</button>
+  <button class="tbtn" id="btnLeft">◀</button>
+  <button class="tbtn" id="btnDown">▼</button>
+  <button class="tbtn" id="btnRight">▶</button>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="gltfloader.js"></script>
+<script src="sounds.js"></script>
 <script src="app.js"></script>
+
 </body>
 </html>

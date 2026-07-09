@@ -19,6 +19,15 @@ html, body { margin:0; padding:0; overflow:hidden; width:100%; height:100%; back
     background:rgba(0,0,0,0.18); padding:6px 12px; border-radius:20px;
     margin-top:6px;
   }
+  #muteBtn {
+    pointer-events:auto;
+    width:44px; height:44px; border:none; border-radius:50%;
+    background:rgba(0,0,0,0.18); color:#fff; font-size:20px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .08s ease, background .15s ease;
+  }
+  #muteBtn:active { transform:scale(0.92); }
+  #muteBtn.muted { background:rgba(0,0,0,0.32); opacity:0.75; }
 
   #startScreen, #gameOverScreen {
     position:absolute; inset:0; display:flex; flex-direction:column;
@@ -56,9 +65,9 @@ html, body { margin:0; padding:0; overflow:hidden; width:100%; height:100%; back
     content: '';
     position: absolute;
     left: 50%;
-    top: -0.22em;
-    width: 0.26em;
-    height: 0.26em;
+    top: 0.05em;
+    width: 0.24em;
+    height: 0.24em;
     background: #ff4136;
     border-radius: 50% 50% 50% 0;
     transform: translateX(-50%) rotate(-45deg);
@@ -283,3 +292,37 @@ html, body { margin:0; padding:0; overflow:hidden; width:100%; height:100%; back
     font-size:15.5px; font-weight:700; color:#5b6b52;
     margin-top:18px; min-height:20px; line-height:1.55;
   }
+  /* ---------- certificate ---------- */
+  #certBtn {
+    position:absolute; top:96px; left:50%; transform:translateX(-50%);
+    z-index:22; font-family:'Baloo 2', sans-serif; font-size:16px; font-weight:700;
+    color:#5a3d00; background:#ffd34d; border:none; border-bottom:5px solid #e0a800;
+    padding:9px 20px; border-radius:14px; cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,0.2);
+    transition:transform .08s ease;
+  }
+  #certBtn:active { transform:translateX(-50%) translateY(3px); border-bottom-width:2px; }
+  .certClaim {
+    background:#ffd34d; color:#5a3d00; border-bottom-color:#e0a800; margin-bottom:12px;
+  }
+  #certOverlay {
+    position:absolute; inset:0; z-index:40;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.4);
+  }
+  .certPanel { width:400px; max-width:92vw; text-align:center; animation: quizPop .18s ease-out; }
+  .certTitle {
+    font-family:'Baloo 2', sans-serif; font-size:26px; font-weight:800;
+    color:#2c3e2d; margin:0 0 6px 0;
+  }
+  #certEmail, #certName {
+    font-family:'Nunito', sans-serif; font-size:16px; font-weight:600;
+    width:100%; box-sizing:border-box; padding:12px 14px; margin:8px 0 4px 0;
+    border:2px solid #c9d9c0; border-radius:12px; outline:none; color:#33422f;
+  }
+  #certEmail:focus, #certName:focus { border-color:#5cb85c; }
+  .certStatus {
+    font-family:'Nunito', sans-serif; font-size:14px; font-weight:700;
+    color:#5b6b52; min-height:20px; margin:8px 0 12px 0;
+  }
+  .certBtnRow { display:flex; gap:12px; justify-content:center; }
+  .certGhost { background:#b8c4b0; border-bottom-color:#93a089; }
