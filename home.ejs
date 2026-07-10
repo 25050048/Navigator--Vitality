@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigator + | Road Safety for Singapore's Youth</title>
+    <%- include('partials/styles.ejs') %>
+    <style>
+        .hero-emoji-row { font-size: 44px; margin-bottom: 18px; letter-spacing: 14px; }
+        .stat-strip { background: var(--brand-pink-light); border-radius: 14px; padding: 30px; margin-bottom: 40px; }
+        .stat-num { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 40px; color: var(--brand-red); }
+        .stat-label { font-size: 14px; color: #6b3a45; }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar.ejs', { page: 'home' }) %>
+
+    <div class="page-hero text-center">
+        <div class="container">
+            <div class="hero-emoji-row">🚸 🚲 🛴 🚗</div>
+            <h1 class="display-5">Road Safety Begins With You</h1>
+            <p class="mx-auto">
+                A road safety resource built for youth in Singapore — pedestrians, cyclists, PMD riders
+                and future drivers. Learn the rules, know the risks, and help make our roads safer.
+            </p>
+            <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+                <a href="/guidelines" class="btn btn-brand">Read Safety Guidelines</a>
+                <a href="/causes" class="btn btn-brand-outline">See the Risks</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+
+        <%- include('partials/readAloud.ejs') %>
+
+        <div id="readable-content">
+        <!-- Stat strip -->
+        <div class="stat-strip">
+            <div class="row text-center g-4">
+                <div class="col-md-4">
+                    <div class="stat-num">147</div>
+                    <div class="stat-label">Road traffic deaths in Singapore in 2025 — the highest in a decade</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-num">7,560</div>
+                    <div class="stat-label">Injury-causing traffic accidents in 2025, up ~7% from 2024</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-num">76%</div>
+                    <div class="stat-label">of Singaporeans polled say impatience is the top reason road users break traffic rules</div>
+                </div>
+            </div>
+            <p class="source-note text-center mt-3 mb-0">Source: Singapore Police Force, Annual Road Traffic Situation 2025 &amp; Ministry of Home Affairs (2026)</p>
+        </div>
+
+        <!-- Features Section -->
+        <div class="mb-5">
+            <div class="text-center mb-4">
+                <span class="section-label">Explore</span>
+                <h2>What You Can Do Here</h2>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card-tile">
+                        <div class="icon">📘</div>
+                        <h5>Safety Guidelines</h5>
+                        <p>Practical, official tips for pedestrians, cyclists, PMD riders and passengers, drawn from SPF and LTA guidance.</p>
+                        <a href="/guidelines">Read guidelines &rarr;</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-tile">
+                        <div class="icon">📊</div>
+                        <h5>Causes of Accidents</h5>
+                        <p>Understand why accidents happen in Singapore — speeding, distraction, PMD misuse and more — backed by real data.</p>
+                        <a href="/causes">See the data &rarr;</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-tile">
+                        <div class="icon">📞</div>
+                        <h5>Emergency Hotlines</h5>
+                        <p>Know exactly who to call if you witness or are involved in a road accident — before you ever need it.</p>
+                        <a href="/hotlines">View hotlines &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-5">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card-tile">
+                        <div class="icon">✍️</div>
+                        <h5>Petitions & Advocacy</h5>
+                        <p>See how ordinary Singaporeans have pushed for safer roads — from PMD regulation to tougher penalties for reckless driving.</p>
+                        <a href="/petitions">View petitions &rarr;</a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card-tile">
+                        <div class="icon">📰</div>
+                        <h5>News & Media</h5>
+                        <p>Stay current on Singapore's latest road safety campaigns, enforcement changes and community initiatives.</p>
+                        <a href="/newsNmedia">Read the news &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quote Section -->
+        <div class="quote-section text-center text-white p-4 p-md-5 rounded-4 mb-5" style="background: linear-gradient(135deg, var(--brand-red-dark), var(--brand-red));">
+            <blockquote class="mb-2" style="font-size: 20px; font-style: italic;">
+                "Road safety does not begin at the traffic junction. It begins the moment we step out of our homes —
+                in our attitudes, our choices, and how we look out for one another."
+            </blockquote>
+            <cite style="opacity: 0.85; font-size: 14px;">— Singapore Road Safety Month 2026, "Road Safety Begins with You"</cite>
+        </div>
+        </div><!-- /#readable-content -->
+
+    </div>
+
+    <%- include('partials/footer.ejs') %>
+
+    <!-- Floating chatbot button -->
+    <button id="openChatButton" class="chat-float">💬</button>
+
+    <!-- Chatbot popup -->
+    <div id="chatPopup" class="chat-popup">
+        <div class="chat-header">
+            <div>
+                <h3>Navigator AI</h3>
+                <p>Road Safety Assistant</p>
+            </div>
+
+            <button id="closeChatButton" class="close-chat">×</button>
+        </div>
+
+        <div id="chatMessages" class="chat-messages">
+            <div class="message bot-message">
+                Hello! Ask me anything about road safety, pedestrians, cycling,
+                PMDs, safe driving or road accidents.
+            </div>
+        </div>
+
+        <form id="chatForm" class="chat-input-area">
+            <input
+                type="text"
+                id="userInput"
+                placeholder="Ask a road-safety question..."
+                autocomplete="off"
+                required
+            >
+
+            <button type="submit" id="sendButton">Send</button>
+        </form>
+    </div>
+
+    <style>
+        .chat-float {
+            position: fixed;
+            right: 25px;
+            bottom: 25px;
+            width: 65px;
+            height: 65px;
+            border: none;
+            border-radius: 50%;
+            background-color: #17324d;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            transition: 0.3s;
+        }
+
+        .chat-float:hover {
+            background-color: #f5a623;
+            transform: scale(1.08);
+        }
+
+        .chat-popup {
+            position: fixed;
+            right: 25px;
+            bottom: 105px;
+            width: 360px;
+            height: 500px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .chat-popup.open {
+            display: flex;
+        }
+
+        .chat-header {
+            background-color: #17324d;
+            color: white;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            font-size: 19px;
+        }
+
+        .chat-header p {
+            margin: 4px 0 0;
+            font-size: 12px;
+        }
+
+        .close-chat {
+            border: none;
+            background: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background-color: #f4f6f8;
+        }
+
+        .message {
+            max-width: 78%;
+            padding: 10px 13px;
+            margin-bottom: 12px;
+            border-radius: 14px;
+            line-height: 1.4;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+
+        .bot-message {
+            background-color: white;
+            color: #222;
+            margin-right: auto;
+        }
+
+        .user-message {
+            background-color: #17324d;
+            color: white;
+            margin-left: auto;
+        }
+
+        .chat-input-area {
+            display: flex;
+            padding: 12px;
+            border-top: 1px solid #ddd;
+            background-color: white;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #aaa;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        #sendButton {
+            margin-left: 8px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            background-color: #f5a623;
+            color: white;
+            cursor: pointer;
+        }
+
+        #sendButton:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+
+        @media screen and (max-width: 500px) {
+            .chat-popup {
+                right: 10px;
+                bottom: 90px;
+                width: calc(100% - 20px);
+                height: 70vh;
+            }
+
+            .chat-float {
+                right: 15px;
+                bottom: 15px;
+            }
+        }
+    </style>
+
+    <script>
+        const openChatButton = document.getElementById('openChatButton');
+        const closeChatButton = document.getElementById('closeChatButton');
+        const chatPopup = document.getElementById('chatPopup');
+        const chatForm = document.getElementById('chatForm');
+        const userInput = document.getElementById('userInput');
+        const chatMessages = document.getElementById('chatMessages');
+        const sendButton = document.getElementById('sendButton');
+
+        openChatButton.addEventListener('click', function() {
+            chatPopup.classList.add('open');
+            openChatButton.style.display = 'none';
+            userInput.focus();
+        });
+
+        closeChatButton.addEventListener('click', function() {
+            chatPopup.classList.remove('open');
+            openChatButton.style.display = 'block';
+        });
+
+        function addMessage(text, messageType) {
+            const message = document.createElement('div');
+
+            message.classList.add('message');
+            message.classList.add(messageType);
+            message.textContent = text;
+
+            chatMessages.appendChild(message);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            return message;
+        }
+
+        chatForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const message = userInput.value.trim();
+
+            if (message === '') {
+                return;
+            }
+
+            addMessage(message, 'user-message');
+
+            userInput.value = '';
+            sendButton.disabled = true;
+
+            const loadingMessage = addMessage(
+                'Navigator AI is thinking...',
+                'bot-message'
+            );
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        message: message
+                    })
+                });
+
+                const data = await response.json();
+
+                loadingMessage.textContent =
+                    data.reply || 'Sorry, I could not answer that question.';
+
+            } catch (error) {
+                loadingMessage.textContent =
+                    'Sorry, I could not connect to Navigator AI.';
+            }
+
+            sendButton.disabled = false;
+            userInput.focus();
+        });
+ </script>
+</body>
+</html>
