@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Navigator+ — Instagram Story</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css" />
+<style>
+  :root{
+    --cream:#FBF3EF;
+    --red:#E24B4A; --red-dark:#791F1F; --red-light:#FCEBEB;
+    --amber:#EF9F27; --amber-dark:#633806; --amber-light:#FAEEDA;
+    --green:#1D9E75; --green-dark:#085041; --green-light:#E1F5EE;
+    --ink:#1C1C1E; --muted:#7A7871; --line:#E3DCD1; --card:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#3A3733;
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:28px 16px 40px;
+    font-family:'Inter',sans-serif;
+  }
+  .hint{ color:#C9C4B9; font-size:12px; font-family:'IBM Plex Mono',monospace; letter-spacing:0.03em; margin-bottom:16px; text-align:center; }
+
+  .story-canvas{
+    width:1080px; height:1920px; flex-shrink:0;
+    background:
+      radial-gradient(680px 520px at 82% 6%, var(--green-light) 0%, rgba(225,245,238,0) 60%),
+      var(--cream);
+    position:relative; overflow:hidden;
+    border-radius:36px;
+    box-shadow:0 30px 80px rgba(0,0,0,0.35);
+  }
+
+  /* ---- top lockup ---- */
+  .top{ position:absolute; top:88px; left:80px; right:80px; display:flex; align-items:center; gap:10px; }
+  .logo{ display:flex; align-items:center; }
+  .logo .n{ width:44px;height:44px;border-radius:50%;background:var(--red);color:#fff;font-family:'Fredoka';font-weight:600;font-size:21px;display:flex;align-items:center;justify-content:center; }
+  .logo .a{ width:26px;height:44px;border-radius:14px;background:var(--amber);margin-left:-8px; }
+  .logo .v{ width:26px;height:50px;border-radius:14px;background:var(--green);margin-left:-8px; }
+  .wordmark{ font-family:'Fredoka'; font-weight:600; font-size:30px; color:var(--ink); margin-left:4px; }
+  .tag{ margin-left:auto; font-family:'IBM Plex Mono'; font-size:15px; letter-spacing:0.06em; color:var(--muted); }
+
+  /* ---- eyebrow ---- */
+  .eyebrow{
+    position:absolute; top:190px; left:80px;
+    background:var(--green-light); color:var(--green-dark);
+    font-family:'IBM Plex Mono'; font-weight:600; font-size:19px; letter-spacing:0.08em;
+    padding:10px 22px; border-radius:99px; text-transform:uppercase;
+  }
+
+  /* ---- headline ---- */
+  .headline{
+    position:absolute; top:270px; left:80px; right:80px;
+    font-family:'Fredoka'; font-weight:600; font-size:92px; line-height:1.06;
+    color:var(--ink);
+  }
+  .headline em{ font-style:normal; color:var(--green-dark); }
+
+  .subcopy{
+    position:absolute; top:660px; left:80px; right:110px;
+    font-size:32px; line-height:1.5; color:#4A4842; font-weight:400;
+  }
+
+  /* ---- route card (signature visual) ---- */
+  .route-card{
+    position:absolute; top:830px; left:80px; right:80px; height:660px;
+    background:var(--card); border-radius:28px; border:1px solid var(--line);
+    box-shadow:0 18px 40px rgba(28,28,30,0.08);
+  }
+  .route-card .rc-label{
+    position:absolute; top:34px; left:40px; font-family:'IBM Plex Mono'; font-size:17px;
+    letter-spacing:0.05em; color:var(--muted); text-transform:uppercase;
+  }
+  .route-card svg{ position:absolute; top:80px; left:0; }
+
+  .pill-row{ position:absolute; bottom:36px; left:40px; right:40px; display:flex; gap:16px; }
+  .pill{ flex:1; border-radius:16px; padding:16px 20px; }
+  .pill.safe{ background:var(--green-light); }
+  .pill.direct{ background:var(--red-light); }
+  .pill .k{ font-family:'IBM Plex Mono'; font-size:14px; letter-spacing:0.05em; text-transform:uppercase; }
+  .pill.safe .k{ color:var(--green-dark); }
+  .pill.direct .k{ color:var(--red-dark); }
+  .pill .m{ font-family:'Fredoka'; font-weight:600; font-size:34px; margin-top:4px; }
+  .pill.safe .m{ color:var(--green-dark); }
+  .pill.direct .m{ color:var(--red-dark); }
+
+  /* ---- stats ---- */
+  .stats{ position:absolute; top:1540px; left:80px; right:80px; display:flex; gap:20px; }
+  .stat{ flex:1; background:rgba(255,255,255,0.6); border:1px solid var(--line); border-radius:18px; padding:20px 22px; }
+  .stat .l{ font-size:16px; color:var(--muted); margin:0; }
+  .stat .v{ font-family:'Fredoka'; font-weight:600; font-size:32px; color:var(--ink); margin:6px 0 0; }
+
+  /* ---- CTA ---- */
+  .cta{
+    position:absolute; top:1700px; left:80px; right:80px;
+    background:var(--ink); color:#fff; border-radius:22px;
+    padding:30px 20px; text-align:center;
+    font-family:'Fredoka'; font-weight:600; font-size:34px;
+    display:flex; align-items:center; justify-content:center; gap:12px;
+  }
+  .cta i{ color:var(--green); font-size:30px; }
+
+  .linkbio{
+    position:absolute; top:1840px; left:0; right:0; text-align:center;
+    font-family:'IBM Plex Mono'; font-size:16px; letter-spacing:0.08em; color:var(--muted);
+    text-transform:uppercase;
+  }
+</style>
+</head>
+<body>
+  <p class="hint">Preview — capture this card at 1080 × 1920 for an Instagram Story</p>
+
+  <div class="story-canvas" id="canvas">
+
+    <div class="top">
+      <div class="logo"><div class="n">N</div><div class="a"></div><div class="v"></div></div>
+      <div class="wordmark">avigator+</div>
+      <div class="tag">SINGAPORE</div>
+    </div>
+
+    <div class="eyebrow">Road safety navigation</div>
+
+    <h1 class="headline">We'll get you there<br>the <em>safe</em> way.</h1>
+
+    <p class="subcopy">Navigator+ checks the road ahead and steers you around the risky bits — usually just a couple of minutes longer.</p>
+
+    <div class="route-card">
+      <span class="rc-label">Tampines MRT → Raffles Place</span>
+      <svg width="920" height="560" viewBox="0 0 920 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="safeGrad" x1="60" y1="470" x2="860" y2="90" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#1D9E75"/>
+            <stop offset="0.45" stop-color="#1D9E75"/>
+            <stop offset="0.62" stop-color="#EF9F27"/>
+            <stop offset="0.8" stop-color="#1D9E75"/>
+            <stop offset="1" stop-color="#1D9E75"/>
+          </linearGradient>
+        </defs>
+
+        <!-- direct route (avoided) -->
+        <path d="M70 470 C 320 380, 520 300, 850 110" stroke="#E24B4A" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 18" opacity="0.55"/>
+
+        <!-- hazard marker on the direct route -->
+        <circle cx="560" cy="248" r="26" fill="#E24B4A" opacity="0.14"/>
+        <circle cx="560" cy="248" r="13" fill="#E24B4A"/>
+        <text x="560" y="204" text-anchor="middle" font-family="IBM Plex Mono" font-size="17" font-weight="600" fill="#791F1F">HAZARD</text>
+
+        <!-- suggested safe route (curves around the hazard) -->
+        <path d="M70 470 C 260 460, 300 330, 430 340 C 560 350, 560 130, 850 110" stroke="url(#safeGrad)" stroke-width="14" stroke-linecap="round"/>
+
+        <!-- start marker -->
+        <circle cx="70" cy="470" r="16" fill="#1D9E75"/>
+        <circle cx="70" cy="470" r="6" fill="#fff"/>
+
+        <!-- end pin -->
+        <path d="M850 110 c0 -26 -21 -40 -21 -62 a21 21 0 1 1 42 0 c0 22 -21 36 -21 62 z" fill="#1C1C1E"/>
+        <circle cx="850" cy="48" r="8" fill="#fff"/>
+      </svg>
+
+      <div class="pill-row">
+        <div class="pill safe"><div class="k">Suggested</div><div class="m">18 min</div></div>
+        <div class="pill direct"><div class="k">Direct</div><div class="m">14 min</div></div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><p class="l">Safer trips this week</p><p class="v">12</p></div>
+      <div class="stat"><p class="l">Live hazard alerts</p><p class="v">4</p></div>
+    </div>
+
+    <div class="cta"><i class="ti ti-shield-check"></i>Download Navigator+</div>
+    <div class="linkbio">🔗 Link in bio</div>
+
+  </div>
+
+<script>
+  function fit(){
+    var el = document.getElementById('canvas');
+    var scale = Math.min(1, (window.innerWidth - 32) / 1080, (window.innerHeight - 100) / 1920);
+    el.style.zoom = scale;
+  }
+  window.addEventListener('resize', fit);
+  fit();
+</script>
+</body>
+</html>
