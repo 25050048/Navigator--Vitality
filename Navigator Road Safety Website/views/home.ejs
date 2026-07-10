@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigator + | Road Safety for Singapore's Youth</title>
+    <%- include('partials/styles.ejs') %>
+    <style>
+        .hero-emoji-row { font-size: 44px; margin-bottom: 18px; letter-spacing: 14px; }
+        .stat-strip { background: var(--brand-teal-light); border-radius: 14px; padding: 30px; margin-bottom: 40px; }
+        .stat-num { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 40px; color: var(--brand-red); }
+        .stat-label { font-size: 14px; color: var(--brand-teal-dark); }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar.ejs', { page: 'home' }) %>
+
+    <div class="page-hero text-center">
+        <div class="container">
+            <div class="hero-emoji-row">🚸 🚲 🛴 🚗</div>
+            <h1 class="display-5">Road Safety Begins With You</h1>
+            <p class="mx-auto">
+                A road safety resource built for youth in Singapore — pedestrians, cyclists, PMD riders
+                and future drivers. Learn the rules, know the risks, and help make our roads safer.
+            </p>
+
+            <div class="mt-4 mb-2">
+                <%- include('partials/searchBar.ejs') %>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+                <a href="/guidelines" class="btn btn-brand">Read Safety Guidelines</a>
+                <a href="/causes" class="btn btn-brand-outline">See the Risks</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+
+        <%- include('partials/readAloud.ejs') %>
+
+        <div id="readable-content">
+        <!-- Stat strip -->
+        <div class="stat-strip">
+            <div class="row text-center g-4">
+                <div class="col-md-4">
+                    <div class="stat-num">147</div>
+                    <div class="stat-label">Road traffic deaths in Singapore in 2025 — the highest in a decade</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-num">7,560</div>
+                    <div class="stat-label">Injury-causing traffic accidents in 2025, up ~7% from 2024</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-num">76%</div>
+                    <div class="stat-label">of Singaporeans polled say impatience is the top reason road users break traffic rules</div>
+                </div>
+            </div>
+            <p class="source-note text-center mt-3 mb-0">Source: Singapore Police Force, Annual Road Traffic Situation 2025 &amp; Ministry of Home Affairs (2026)</p>
+        </div>
+
+        <!-- Features Section -->
+        <div class="mb-5">
+            <div class="text-center mb-4">
+                <span class="section-label">Explore</span>
+                <h2>What You Can Do Here</h2>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card-tile">
+                        <div class="icon">📘</div>
+                        <h5>Safety Guidelines</h5>
+                        <p>Practical, official tips for pedestrians, cyclists, PMD riders and passengers, drawn from SPF and LTA guidance.</p>
+                        <a href="/guidelines">Read guidelines &rarr;</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-tile">
+                        <div class="icon">📊</div>
+                        <h5>Causes of Accidents</h5>
+                        <p>Understand why accidents happen in Singapore — speeding, distraction, PMD misuse and more — backed by real data.</p>
+                        <a href="/causes">See the data &rarr;</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-tile card-tile-urgent">
+                        <h5>Emergency Hotlines</h5>
+                        <p>Know exactly who to call if you witness or are involved in a road accident — before you ever need it.</p>
+                        <a href="/hotlines">View hotlines &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-5">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card-tile">
+                        <div class="icon">✍️</div>
+                        <h5>Petitions & Advocacy</h5>
+                        <p>See how ordinary Singaporeans have pushed for safer roads — from PMD regulation to tougher penalties for reckless driving.</p>
+                        <a href="/petitions">View petitions &rarr;</a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card-tile">
+                        <div class="icon">📰</div>
+                        <h5>News & Media</h5>
+                        <p>Stay current on Singapore's latest road safety campaigns, enforcement changes and community initiatives.</p>
+                        <a href="/newsNmedia">Read the news &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quote Section -->
+        <div class="quote-section text-center text-white p-4 p-md-5 rounded-4 mb-5" style="background: linear-gradient(135deg, var(--brand-red-dark), var(--brand-red));">
+            <blockquote class="mb-2" style="font-size: 20px; font-style: italic;">
+                "Road safety does not begin at the traffic junction. It begins the moment we step out of our homes —
+                in our attitudes, our choices, and how we look out for one another."
+            </blockquote>
+            <cite style="opacity: 0.85; font-size: 14px;">— Singapore Road Safety Month 2026, "Road Safety Begins with You"</cite>
+        </div>
+        </div><!-- /#readable-content -->
+
+    </div>
+
+    <%- include('partials/footer.ejs') %>
+
+    <%- include('partials/chatWidget.ejs') %>
+</body>
+</html>

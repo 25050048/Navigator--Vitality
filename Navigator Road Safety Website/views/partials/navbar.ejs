@@ -1,0 +1,52 @@
+<nav class="navbar navbar-expand-lg" style="background-color: var(--brand-nav-dark);">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/home" style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 22px; color: var(--brand-nav-text);">
+            <img src="/images/app_logo_footer.png" height="80" alt="Navigator + logo">
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="collapsibleNavbar">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link<%= typeof page !== 'undefined' && page === 'home' ? ' active-link' : '' %>" href="/home" style="color: var(--brand-nav-text);">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link<%= typeof page !== 'undefined' && page === 'guidelines' ? ' active-link' : '' %>" href="/guidelines" style="color: var(--brand-nav-text);">Guidelines</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link<%= typeof page !== 'undefined' && page === 'causes' ? ' active-link' : '' %>" href="/causes" style="color: var(--brand-nav-text);">Causes</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link<%= typeof page !== 'undefined' && page === 'hotlines' ? ' active-link' : '' %>" href="/hotlines" style="color: var(--brand-nav-text);">Emergency Hotlines</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link<%= typeof page !== 'undefined' && page === 'petitions' ? ' active-link' : '' %>" href="/petitions" style="color: var(--brand-nav-text);">Petitions</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link<%= typeof page !== 'undefined' && page === 'news' ? ' active-link' : '' %>" href="/newsNmedia" style="color: var(--brand-nav-text);">News & Media</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link<%= typeof page !== 'undefined' && page === 'game' ? ' active-link' : '' %>" href="/game" style="color: var(--brand-nav-text);">Game</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link<%= typeof page !== 'undefined' && page === 'navi-app' ? ' active-link' : '' %>" href="/naviapp" style="color: var(--brand-nav-text);">Navigator+ App</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link<%= typeof page !== 'undefined' && page === 'chatbox' ? ' active-link' : '' %>" href="/chatbox" style="color: var(--brand-nav-text);">Chatbot</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link<%= typeof page !== 'undefined' && page === 'about' ? ' active-link' : '' %>" href="/about" style="color: var(--brand-nav-text);">About Us</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link<%= typeof page !== 'undefined' && page === 'contact' ? ' active-link' : '' %>" href="/contactUs" style="color: var(--brand-nav-text);">Contact Us</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<style>
+    .navbar-nav .nav-link { font-weight: 500; opacity: 0.9; transition: opacity 0.15s ease; }
+    .navbar-nav .nav-link:hover { opacity: 1; text-decoration: underline; }
+    .navbar-nav .active-link { opacity: 1; text-decoration: underline; font-weight: 700; }
+</style>

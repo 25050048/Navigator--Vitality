@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy | Navigator +</title>
+    <%- include('partials/styles.ejs') %>
+    <style>
+        .legal-card { background: white; border-radius: 18px; box-shadow: 0 4px 18px rgba(22,48,46,0.08); padding: 40px; }
+        .legal-card h2 { font-size: 20px; margin-top: 34px; margin-bottom: 12px; }
+        .legal-card h2:first-child { margin-top: 0; }
+        .legal-card p, .legal-card li { color: var(--brand-ink-soft); line-height: 1.7; }
+        .legal-card ul { padding-left: 20px; }
+        .updated-note { font-size: 13px; color: var(--brand-ink-soft); }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar.ejs', { page: 'privacy' }) %>
+
+    <div class="page-hero text-center">
+        <div class="container">
+            <h1 class="display-6">Privacy Policy</h1>
+            <p class="mx-auto">How Navigator + handles the information you share with us.</p>
+        </div>
+    </div>
+
+    <div class="container my-4 mb-5">
+        <%- include('partials/readAloud.ejs') %>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="legal-card" id="readable-content">
+                    <p class="updated-note">Last updated: 10 July 2026</p>
+
+                    <h2>Who we are</h2>
+                    <p>Navigator + is a youth road safety education project for Singapore. It is not an official government website, and this policy covers only the information handled through this site.</p>
+
+                    <h2>Information we collect</h2>
+                    <p>We keep this to what's needed for the site to work:</p>
+                    <ul>
+                        <li><strong>Contact form submissions.</strong> If you use "Contact Us," your message is sent to and stored by our third-party form provider so we can reply to you. We don't independently store a copy on our own server.</li>
+                        <li><strong>Server logs.</strong> Like most websites, our hosting provider automatically records basic technical information (e.g. page requests, timestamps) for security and troubleshooting. We don't use this to build a profile of individual visitors.</li>
+                        <li><strong>Translation feature.</strong> If you use the on-page translation tool, the text you submit is sent to our AI provider (Anthropic) solely to generate the translation, and is not stored by us afterwards.</li>
+                    </ul>
+                    <p>We do not currently use advertising cookies, tracking pixels, or third-party analytics on this site. If that changes, we'll update this policy first.</p>
+
+                    <h2>How we use information</h2>
+                    <p>Solely to respond to enquiries or reports sent through the contact form, to keep the site secure and working correctly, and to provide the specific feature you requested (like translation). We do not sell or rent your information to anyone.</p>
+
+                    <h2>A note for young people and parents</h2>
+                    <p>This site is designed for youth audiences. If you're under 18, we encourage you to check with a parent or guardian before submitting any personal information through the contact form. Please don't include more personal detail than necessary — your name and a way to reach you is usually enough.</p>
+
+                    <h2>Third-party links and services</h2>
+                    <p>Our footer links to external organisations (SPF, LTA, Singapore Road Safety Council, etc.) and our contact form is hosted by a third-party provider. Once you leave navigatorplus.sg or submit the contact form, that organisation's own privacy policy applies — we don't control how they handle your data.</p>
+
+                    <h2>Data retention</h2>
+                    <p>Contact form messages are retained by our form provider only as long as needed to respond to your enquiry, after which they're deleted. Server logs are automatically cleared on a rolling basis by our hosting provider.</p>
+
+                    <h2>Your rights</h2>
+                    <p>You can ask us what information we hold about you, request that we ask our form provider to delete a submission, or raise any privacy concern by emailing us at the address below.</p>
+
+                    <h2>Changes to this policy</h2>
+                    <p>If we materially change how we handle information, we'll update the date at the top of this page and, where appropriate, note the change on our homepage.</p>
+
+                    <h2>Contact us</h2>
+                    <p>Questions about this policy? Email <a href="mailto:hello@navigatorplus.sg">hello@navigatorplus.sg</a>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include('partials/footer.ejs') %>
+</body>
+</html>
