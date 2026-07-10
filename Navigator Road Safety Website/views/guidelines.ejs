@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road Safety Guidelines |  Navigator +</title>
+    <%- include('partials/styles.ejs') %>
+    <style>
+        .nav-pills-custom .nav-link { color: var(--brand-red-dark); font-weight: 600; border-radius: 999px; }
+        .nav-pills-custom .nav-link.active { background-color: var(--brand-red); color: white; }
+        .guide-card { background: white; border-radius: 14px; padding: 30px; box-shadow: 0 3px 14px rgba(156,28,62,0.08); margin-bottom: 30px; }
+        .guide-card h3 { display: flex; align-items: center; gap: 10px; }
+        .guide-card ul { padding-left: 20px; }
+        .guide-card li { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar.ejs', { page: 'guidelines' }) %>
+     
+    <div class="page-hero text-center">
+        <div class="container">
+            <h1 class="display-6">Road Safety Guidelines</h1>
+            <p class="mx-auto">Whether you walk, cycle, ride a PMD or take the wheel one day — here's what every road user in Singapore should know.</p>
+        </div>
+    </div>
+
+    <div class="container mt-4 mb-5">
+
+        <ul class="nav nav-pills nav-pills-custom justify-content-center flex-wrap gap-2 mb-4">
+            <li class="nav-item"><a class="nav-link active" href="#pedestrians">Pedestrians</a></li>
+            <li class="nav-item"><a class="nav-link" href="#cyclists">Cyclists & PMDs</a></li>
+            <li class="nav-item"><a class="nav-link" href="#passengers">Passengers</a></li>
+            <li class="nav-item"><a class="nav-link" href="#new-drivers">New Drivers</a></li>
+        </ul>
+        <%- include('partials/readAloud.ejs') %>
+
+        <div id="readable-content">
+        <!-- Pedestrians -->
+        <div id="pedestrians" class="guide-card">
+            <h3><span>🚶</span> For Pedestrians</h3>
+            <p>Pedestrians are among the most vulnerable road users. Big or small, fast or slow — every road user needs to do their part to stay safe.</p>
+            <ul>
+                <li><strong>Always cross at designated crossings</strong> — zebra crossings, overhead bridges, underpasses or signalised junctions. Avoid jaywalking, even if it looks like a shortcut.</li>
+                <li><strong>Look both ways</strong> before crossing, and keep checking as you cross. Never assume a driver has seen you.</li>
+                <li><strong>Put your phone away</strong> while crossing. Distracted crossing is one of the everyday lapses that traffic police repeatedly flag as a factor in accidents.</li>
+                <li><strong>Be visible at night</strong> — wear light-coloured or reflective clothing, especially near roads without good street lighting.</li>
+                <li><strong>Watch out for turning vehicles</strong> at junctions, even when the pedestrian light is green — drivers making turns don't always see pedestrians stepping off the kerb.</li>
+                <li><strong>Be extra careful around the elderly</strong> — seniors made up a disproportionate share of pedestrian deaths in 2025, and giving way and slowing down protects them.</li>
+            </ul>
+            <p class="source-note">Source: Singapore Police Force, Road Safety Tips for Pedestrians</p>
+        </div>
+
+        <!-- Cyclists / PMD -->
+        <div id="cyclists" class="guide-card">
+            <h3><span>🚲</span> For Cyclists & PMD Riders</h3>
+            <p>Cycling and personal mobility devices (PMDs) are increasingly common ways to get around Singapore — but they come with rules that exist for good reason.</p>
+            <ul>
+                <li><strong>Helmets are compulsory</strong> when cycling or riding a power-assisted bicycle (PAB) on the road. Wear elbow and knee pads too if you can — they cushion falls.</li>
+                <li><strong>Ring your bell</strong> to give pedestrians advance warning as you approach them on shared paths.</li>
+                <li><strong>Wear light-coloured or reflective clothing</strong> to boost your visibility to other road users, especially at night.</li>
+                <li><strong>No phones while riding</strong> — since August 2020, it's an offence to hold a mobile device and use its functions while riding a bicycle or PAB.</li>
+                <li><strong>PMDs must be LTA-approved</strong> with a valid seal, registered and number-plated — and riders must be at least 16 years old. Pillion riders must also be 16 or older.</li>
+                <li><strong>PMDs are banned from footpaths</strong> — they can only be used on cycling paths, park connectors, and where explicitly allowed. This rule exists because PMD-related injuries on footpaths dropped by over half once the ban took effect.</li>
+                <li><strong>Slow down near pedestrians</strong> and give way — a fall at even 15km/h can cause serious head injuries.</li>
+            </ul>
+            <p class="source-note">Source: SPF Road Safety Tips for Cyclists; LTA Road Safety Guide</p>
+        </div>
+
+        <!-- Passengers -->
+        <div id="passengers" class="guide-card">
+            <h3><span>🚗</span> For Passengers</h3>
+            <p>Being a good passenger is a road safety skill too — and it's one every young person in Singapore practises daily on buses, in cars, and on the MRT.</p>
+            <ul>
+                <li><strong>Always buckle up</strong>, front seat or back — seatbelts are the single most effective protection in a collision.</li>
+                <li><strong>Don't distract the driver</strong> — loud noise, sudden movements or arguments can pull a driver's attention off the road at the worst possible moment.</li>
+                <li><strong>Speak up if a driver is unsafe</strong> — whether that's a friend driving too fast, using a phone, or driving after drinking. It's not rude to ask them to slow down or pull over.</li>
+                <li><strong>Board and alight safely</strong> from buses and cars — wait until vehicles have fully stopped, and check for oncoming traffic and cyclists before opening a car door.</li>
+            </ul>
+        </div>
+
+        <!-- New drivers / learners -->
+        <div id="new-drivers" class="guide-card">
+            <h3><span>🪪</span> For Future & New Drivers</h3>
+            <p>Many secondary school and JC students in Singapore start thinking about driving lessons early. Here's what to know before you're behind the wheel.</p>
+            <ul>
+                <li><strong>The Highway Code matters</strong> — the Basic Theory of Driving handbook covers the traffic rules, signs and signals every licensed road user is legally expected to know.</li>
+                <li><strong>New drivers are on probation</strong> for one year after getting their licence, and must display a probation plate. Racking up 13 or more demerit points during this period revokes the licence.</li>
+                <li><strong>Speeding is a leading cause of serious accidents</strong> — the faster you drive, the less time you have to react. Speeding violations surged in 2025 even as enforcement intensified.</li>
+                <li><strong>Never drink and drive.</strong> Singapore is lowering its legal blood-alcohol limit, and drink-driving remains one of the most dangerous and heavily enforced offences on the road.</li>
+                <li><strong>Keep a lookout for vulnerable road users</strong> — cyclists, PMD riders, children and the elderly may not always predictably follow the rules, so defensive driving matters.</li>
+            </ul>
+            <p class="source-note">Source: SPF Basic Theory of Driving handbook; Ministry of Home Affairs road safety announcements (2026)</p>
+        </div>
+        </div><!-- /#readable-content -->
+
+        <div class="text-center mt-4">
+            <p>Want to know why accidents actually happen in Singapore?</p>
+            <a href="/causes" class="btn btn-brand">Explore the Causes</a>
+        </div>
+
+    </div>
+
+    <%- include('partials/footer.ejs') %>
+</body>
+</html>

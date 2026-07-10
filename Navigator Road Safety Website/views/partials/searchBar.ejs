@@ -1,0 +1,71 @@
+<style>
+    .site-search { position: relative; max-width: 480px; margin: 0 auto; }
+    .site-search-input {
+        width: 100%;
+        border-radius: 999px;
+        border: 2px solid var(--brand-red);
+        padding: 12px 20px;
+        font-size: 15px;
+        outline: none;
+        background: #fff;
+    }
+    .site-search-input:focus {
+        box-shadow: 0 0 0 3px rgba(201,24,74,0.15);
+    }
+    .site-search-results {
+        display: none;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(100% + 8px);
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.14);
+        overflow: hidden;
+        z-index: 1000;
+        text-align: left;
+        max-height: 340px;
+        overflow-y: auto;
+    }
+    .site-search-results.show { display: block; }
+    .site-search-result {
+        display: block;
+        padding: 12px 18px;
+        text-decoration: none;
+        color: inherit;
+        border-bottom: 1px solid #f2e6e9;
+    }
+    .site-search-result:last-child { border-bottom: none; }
+    .site-search-result:hover, .site-search-result:focus {
+        background: var(--brand-pink-light, #fbeef1);
+    }
+    .site-search-result-title {
+        font-weight: 700;
+        color: var(--brand-red);
+        font-size: 14px;
+        margin-bottom: 2px;
+    }
+    .site-search-result-desc {
+        font-size: 13px;
+        color: #6b3a45;
+    }
+    .site-search-empty {
+        padding: 14px 18px;
+        font-size: 13px;
+        color: #8a5060;
+    }
+</style>
+
+<div class="site-search" id="site-search">
+    <input
+        type="text"
+        id="site-search-input"
+        class="site-search-input"
+        placeholder="🔍 Search the site (e.g. &quot;helmet&quot;, &quot;hotline&quot;, &quot;PMD&quot;)"
+        autocomplete="off"
+        aria-label="Search the site"
+    >
+    <div id="site-search-results" class="site-search-results" role="listbox"></div>
+</div>
+
+<script src="/js/search.js" defer></script>
