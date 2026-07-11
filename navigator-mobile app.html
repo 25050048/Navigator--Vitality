@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Navigator+ — Road Safety Navigation</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css" />
+<style>
+  :root{
+    --cream:#FBF3EF;
+    --red:#E24B4A; --red-dark:#791F1F; --red-light:#FCEBEB;
+    --amber:#EF9F27; --amber-dark:#633806; --amber-light:#FAEEDA;
+    --green:#1D9E75; --green-dark:#085041; --green-light:#E1F5EE;
+    --ink:#1C1C1E; --muted:#7A7871; --line:#E3DCD1; --card:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:#EDE7DD; color:var(--ink);
+  }
+  .app{
+    max-width:430px; margin:0 auto; min-height:100vh; background:var(--cream);
+    display:flex; flex-direction:column; position:relative;
+  }
+  header{
+    display:flex; align-items:center; gap:8px; padding:16px 18px 10px;
+  }
+  .logo{ display:flex; align-items:center; }
+  .logo .n{ width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center; }
+  .logo .a{ width:16px;height:26px;border-radius:9px;background:var(--amber);margin-left:-4px; }
+  .logo .v{ width:16px;height:30px;border-radius:9px;background:var(--green);margin-left:-4px; }
+  header h1{ font-size:17px; font-weight:600; margin:0; letter-spacing:0.1px; }
+  header .tag{ font-size:11px; color:var(--muted); margin-left:auto; }
+
+  .screen{ display:none; flex:1; flex-direction:column; padding:0 18px 90px; overflow-y:auto; }
+  .screen.active{ display:flex; }
+
+  .subtext{ font-size:13px; color:var(--muted); margin:2px 0 10px; }
+
+  .route-bar{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; display:flex; flex-direction:column; gap:8px; margin-bottom:10px;
+  }
+  .route-row{ display:flex; align-items:center; gap:8px; }
+  .route-row select{
+    border:none; background:transparent; font-size:13px; color:var(--ink);
+    font-family:inherit; flex:1; padding:2px 0;
+  }
+  .swap-btn{ background:none;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px;color:var(--ink);cursor:pointer; }
+  .find-btn{
+    background:var(--ink); color:#fff; border:none; border-radius:10px; padding:10px;
+    font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .find-btn:active{ transform:scale(0.98); }
+
+  #map{ height:280px; border-radius:14px; margin-bottom:10px; border:1px solid var(--line); }
+
+  .legend{
+    display:flex; gap:10px; font-size:10.5px; color:#444; margin:-4px 0 10px; flex-wrap:wrap;
+  }
+  .legend span{ display:flex; align-items:center; gap:4px; }
+  .dot{ width:9px;height:9px;border-radius:2px;display:inline-block; }
+
+  .route-summary{ display:flex; gap:8px; margin-bottom:10px; }
+  .route-card{ flex:1; background:var(--card); border-radius:12px; padding:10px 12px; border:1px solid var(--line); }
+  .route-card.chosen{ border:2px solid var(--green); }
+  .badge{ font-size:10.5px; font-weight:600; padding:2px 8px; border-radius:8px; display:inline-block; }
+  .badge.chosen{ background:var(--green-light); color:var(--green-dark); }
+  .route-card .mins{ font-size:19px; font-weight:600; margin:8px 0 0; }
+  .route-card .desc{ font-size:11.5px; color:var(--muted); margin:2px 0 0; }
+  .route-card .risk{ font-size:11px; margin:6px 0 0; display:flex; align-items:center; gap:4px; }
+  .risk.ok{ color:var(--green-dark); }
+  .risk.bad{ color:var(--red-dark); }
+
+  .alert-banner{
+    background:var(--red-light); border-radius:12px; padding:10px 12px; display:flex; gap:10px;
+    margin-bottom:12px;
+  }
+  .alert-banner i{ color:var(--red-dark); font-size:16px; margin-top:1px; }
+  .alert-banner .t{ font-size:12.5px; font-weight:600; color:var(--red-dark); margin:0; }
+  .alert-banner .d{ font-size:11.5px; color:#A32D2D; margin:2px 0 0; }
+  .alert-banner.clear{ background:var(--green-light); }
+  .alert-banner.clear i{ color:var(--green-dark); }
+  .alert-banner.clear .t{ color:var(--green-dark); }
+  .alert-banner.clear .d{ color:var(--green-dark); }
+
+  .weather-banner{
+    display:flex; gap:10px; align-items:flex-start; background:#fff; border:1px solid var(--line);
+    border-radius:12px; padding:9px 12px; margin-bottom:10px;
+  }
+  .weather-banner .w-icon{ font-size:18px; color:#0C447C; margin-top:1px; }
+  .weather-banner .w-text{ margin:0; font-size:12.5px; font-weight:600; color:var(--ink); }
+  .weather-banner .w-sub{ margin:2px 0 0; font-size:11px; color:var(--muted); }
+
+  .card-list{ display:flex; flex-direction:column; gap:8px; }
+  .item-card{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 12px; display:flex; gap:10px; }
+  .item-card i{ font-size:16px; margin-top:1px; }
+  .item-card .t{ font-size:12.5px; font-weight:600; margin:0; }
+  .item-card .d{ font-size:11.5px; color:var(--muted); margin:2px 0 0; }
+
+  .stat-row{ display:flex; gap:8px; margin-top:10px; }
+  .stat{ flex:1; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
+  .stat .l{ font-size:11px; color:var(--muted); margin:0; }
+  .stat .v{ font-size:16px; font-weight:600; margin:2px 0 0; }
+
+  .chat-log{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+  .bubble{ max-width:80%; padding:9px 11px; font-size:12.5px; border-radius:14px; line-height:1.5; }
+  .bubble.bot{ align-self:flex-start; background:var(--card); border:1px solid var(--line); border-bottom-left-radius:3px; }
+  .bubble.user{ align-self:flex-end; background:var(--green); color:#fff; border-bottom-right-radius:3px; }
+  .chat-input-row{ display:flex; gap:6px; margin-top:auto; padding-top:8px; }
+  .chat-input-row input{
+    flex:1; border:1px solid var(--line); border-radius:20px; padding:10px 14px; font-size:12.5px;
+    font-family:inherit; background:var(--card); color:var(--ink);
+  }
+  .chat-input-row input:focus{ outline:2px solid var(--green); outline-offset:1px; }
+  .send-btn{ width:38px; height:38px; border-radius:50%; background:var(--green); border:none; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+  .suggest-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .suggest-chip{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:6px 10px; font-size:11px; cursor:pointer; color:var(--ink); }
+
+  .profile-head{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .avatar{ width:42px;height:42px;border-radius:50%;background:#F0997B;color:#4A1B0C;font-weight:600;display:flex;align-items:center;justify-content:center; }
+  .settings-list{ display:flex; flex-direction:column; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .setting-row{ display:flex; justify-content:space-between; padding:12px; font-size:12.5px; border-bottom:1px solid var(--line); }
+  .setting-row:last-child{ border-bottom:none; }
+  .setting-row .v{ color:var(--muted); }
+  .setting-row .on{ color:var(--green-dark); font-weight:600; }
+
+  nav.tabbar{
+    position:sticky; bottom:0; background:#fff; border-top:1px solid var(--line);
+    display:flex; max-width:430px; margin:0 auto; width:100%;
+  }
+  nav.tabbar button{
+    flex:1; border:none; background:none; padding:10px 0 12px; display:flex; flex-direction:column;
+    align-items:center; gap:2px; color:#B4B2A9; cursor:pointer; font-family:inherit;
+  }
+  nav.tabbar button.active{ color:var(--green); }
+  nav.tabbar button i{ font-size:19px; }
+  nav.tabbar button span{ font-size:10px; }
+
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+  .game-wrap{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; position:relative; overflow:hidden; }
+  .game-title{ margin:0; font-size:14px; font-weight:600; }
+  .game-sub{ margin:4px 0 12px; font-size:11.5px; color:var(--muted); }
+
+  .game-board{ margin-bottom:12px; }
+  .road-lane{
+    position:relative; height:180px; border-radius:10px; overflow:hidden;
+    background:repeating-linear-gradient(#3B3B3D,#3B3B3D 100%);
+  }
+  .road-lane::before{
+    content:''; position:absolute; left:50%; top:0; bottom:0; width:4px; margin-left:-2px;
+    background:repeating-linear-gradient(to bottom, #EDE7DD 0 14px, transparent 14px 26px);
+    opacity:0.7;
+    animation:roadScroll 0.7s linear infinite;
+  }
+  @keyframes roadScroll{ from{ background-position-y:0; } to{ background-position-y:26px; } }
+
+  .traffic-car{ position:absolute; font-size:15px; opacity:0.8; animation-timing-function:linear; animation-iteration-count:infinite; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3)); }
+  .traffic-car.rev{ transform:scaleX(-1); }
+  .traffic-car.tc1{ top:20%; animation-name:driveRight; animation-duration:3.1s; }
+  .traffic-car.tc2{ top:42%; animation-name:driveLeft; animation-duration:3.8s; animation-delay:0.5s; }
+  .traffic-car.tc3{ top:65%; animation-name:driveRight; animation-duration:3.4s; animation-delay:1.3s; }
+  .traffic-car.tc4{ top:85%; animation-name:driveLeft; animation-duration:4.4s; animation-delay:0.2s; }
+  @keyframes driveRight{ from{ left:-24px; } to{ left:100%; } }
+  @keyframes driveLeft{ from{ left:100%; } to{ left:-24px; } }
+
+  .cloud{ position:absolute; font-size:13px; opacity:0.55; top:4%; animation:driftCloud linear infinite; }
+  .cloud.c1{ animation-duration:13s; }
+  .cloud.c2{ top:10%; font-size:10px; animation-duration:19s; animation-delay:3s; }
+
+  @keyframes driftCloud{ from{ left:-15%; } to{ left:110%; } }
+
+  .finish-line{
+    position:absolute; top:0; left:0; right:0; height:18px; background:var(--green);
+    color:#fff; font-size:9px; font-weight:700; letter-spacing:1px; text-align:center; line-height:18px;
+    animation:finishPulse 1.6s ease-in-out infinite; z-index:2;
+  }
+  @keyframes finishPulse{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.25); } }
+
+  .car-token{
+    position:absolute; left:50%; transform:translateX(-50%); bottom:2%;
+    font-size:26px; transition:bottom 0.5s cubic-bezier(.34,1.56,.64,1); z-index:3;
+    filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35));
+  }
+  @keyframes carHop{
+    0%{ transform:translateX(-50%) translateY(0) scale(1); }
+    30%{ transform:translateX(-50%) translateY(-16px) scale(1.18) rotate(-6deg); }
+    60%{ transform:translateX(-50%) translateY(2px) scale(0.94) rotate(4deg); }
+    100%{ transform:translateX(-50%) translateY(0) scale(1) rotate(0deg); }
+  }
+  .car-token.hop{ animation:carHop 0.55s ease; }
+  @keyframes carShudder{
+    0%,100%{ transform:translateX(-50%) rotate(0deg); }
+    25%{ transform:translateX(-50%) rotate(-8deg); }
+    75%{ transform:translateX(-50%) rotate(8deg); }
+  }
+  .car-token.shudder{ animation:carShudder 0.4s ease; }
+
+  .points-pop{
+    position:absolute; left:50%; transform:translateX(-50%); font-weight:800; font-size:13px;
+    color:#FFD966; text-shadow:0 1px 2px rgba(0,0,0,0.5); animation:pointsFloat 0.9s ease-out forwards;
+    pointer-events:none; z-index:4;
+  }
+  @keyframes pointsFloat{ from{ opacity:1; transform:translate(-50%,0); } to{ opacity:0; transform:translate(-50%,-34px); } }
+
+  .game-meta{ display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:6px; }
+
+  .streak-stars{ display:flex; gap:4px; justify-content:center; margin-top:7px; }
+  .streak-stars .star{ font-size:14px; color:#D8D2C4; transition:color 0.25s ease, transform 0.25s ease; }
+  .streak-stars .star.lit{ color:#F5C542; transform:scale(1.2); }
+
+  .confetti-layer{ position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:6; }
+  .confetti-piece{ position:absolute; top:-10px; width:6px; height:10px; opacity:0.95; border-radius:1px; animation-name:confettiFall; animation-timing-function:linear; animation-fill-mode:forwards; }
+  @keyframes confettiFall{ to{ transform:translateY(230px) rotate(420deg); opacity:0; } }
+
+  .question-card{ background:var(--cream); border-radius:10px; padding:12px; transition:transform 0.05s ease; }
+  @keyframes shakeX{ 0%,100%{ transform:translateX(0); } 20%{ transform:translateX(-7px); } 40%{ transform:translateX(7px); } 60%{ transform:translateX(-5px); } 80%{ transform:translateX(5px); } }
+  .question-card.shake{ animation:shakeX 0.4s ease; }
+  .q-text{ margin:0 0 10px; font-size:13px; font-weight:600; }
+  .q-options{ display:flex; flex-direction:column; gap:7px; }
+  .q-option-btn{
+    text-align:left; background:var(--card); border:1px solid var(--line); border-radius:9px;
+    padding:9px 11px; font-size:12.5px; font-family:inherit; color:var(--ink); cursor:pointer;
+  }
+  .q-option-btn:active{ transform:scale(0.99); }
+  .q-option-btn.correct{ background:var(--green-light); border-color:var(--green); color:var(--green-dark); }
+  .q-option-btn.wrong{ background:var(--red-light); border-color:var(--red); color:var(--red-dark); }
+  .q-option-btn:disabled{ cursor:default; }
+
+  .game-end{ text-align:center; padding:16px 6px 4px; }
+  .end-title{ margin:0; font-size:16px; font-weight:700; }
+  .end-title.win{ color:var(--green-dark); font-size:19px; }
+  .end-title.lost{ color:var(--red-dark); font-size:19px; }
+  .end-desc{ margin:6px 0 14px; font-size:12.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="app">
+  <h2 class="sr-only">Navigator plus, a road safety navigation app for Singapore with a live map, hazard alerts, and a road safety assistant.</h2>
+
+  <header>
+    <div class="logo"><div class="n">N</div><div class="a"></div><div class="v"></div></div>
+    <h1>avigator+</h1>
+    <span class="tag">Singapore</span>
+  </header>
+
+  <section id="screen-map" class="screen active">
+    <p class="subtext">Plan a route and see risk before you go.</p>
+
+    <div class="weather-banner" id="weatherBanner" style="display:none;">
+      <i class="ti ti-sun w-icon" aria-hidden="true"></i>
+      <div>
+        <p class="w-text">Loading live weather…</p>
+        <p class="w-sub"></p>
+      </div>
+    </div>
+
+    <div class="route-bar">
+      <div class="route-row">
+        <i class="ti ti-circle-dot" style="color:var(--green);font-size:15px;" aria-hidden="true"></i>
+        <input type="text" id="fromInput" list="locList" placeholder="Start location in Singapore" value="Tampines MRT" />
+      </div>
+      <div class="route-row">
+        <i class="ti ti-map-pin" style="color:var(--red);font-size:15px;" aria-hidden="true"></i>
+        <input type="text" id="toInput" list="locList" placeholder="Destination in Singapore" value="Raffles Place" />
+        <button class="swap-btn" id="swapBtn" aria-label="Swap start and destination">⇅</button>
+      </div>
+      <datalist id="locList"></datalist>
+      <button class="find-btn" id="findBtn">Find safest route</button>
+      <p class="subtext" style="margin:2px 0 0;">Type any address, building, or place name in Singapore, or a 6-digit postal code.</p>
+    </div>
+
+    <div id="map" role="img" aria-label="Map of Singapore showing the selected route colored by risk level, with hazard markers"></div>
+
+    <div class="legend">
+      <span><span class="dot" style="background:var(--green);"></span>Low risk</span>
+      <span><span class="dot" style="background:var(--amber);"></span>Caution</span>
+      <span><span class="dot" style="background:var(--red);"></span>High risk</span>
+    </div>
+
+    <div class="alert-banner" id="hazardBanner">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+      <div>
+        <p class="t" id="hazardTitle">Accident-prone stretch ahead</p>
+        <p class="d" id="hazardDesc">Select a route to check for hazards along the way.</p>
+      </div>
+    </div>
+
+    <div class="route-summary" id="routeSummary" style="display:none;">
+      <div class="route-card chosen" id="safeCard" style="cursor:pointer;">
+        <span class="badge chosen" id="safeBadge">Suggested · Showing</span>
+        <p class="mins" id="safeMins">–</p>
+        <p class="desc" id="safeDesc">Avoids reported hazards</p>
+        <p class="risk ok"><i class="ti ti-shield-check" aria-hidden="true"></i>Lower risk</p>
+      </div>
+      <div class="route-card" id="fastCard" style="cursor:pointer;">
+        <span class="badge" id="fastBadge" style="background:var(--red-light);color:var(--red-dark);">Direct</span>
+        <p class="mins" id="fastMins">–</p>
+        <p class="desc" id="fastDesc">Shortest path</p>
+        <p class="risk bad"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Passes hazard zone</p>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><p class="l">Active alerts</p><p class="v">4</p></div>
+      <div class="stat"><p class="l">Safer trips taken</p><p class="v">12 this week</p></div>
+    </div>
+  </section>
+
+  <section id="screen-alerts" class="screen">
+    <p class="subtext">Live hazards reported near you.</p>
+    <div class="card-list" id="alertsList"></div>
+  </section>
+
+  <section id="screen-chat" class="screen" style="display:none;">
+    <p class="subtext">Ask about road safety, the reasoning behind road laws, or current alerts.</p>
+    <div class="chat-log" id="chatLog">
+      <div class="bubble bot">Hi, I'm the Navigator+ assistant. Ask me why a road law exists (e.g. "why is drink driving illegal?"), for safety tips, or "any alerts right now?" for a live check.</div>
+    </div>
+    <div class="suggest-row">
+      <button class="suggest-chip" data-q="Why is drink driving illegal?">Why drink driving is illegal</button>
+      <button class="suggest-chip" data-q="Any alerts right now?">Check current alerts</button>
+      <button class="suggest-chip" data-q="Why do we need seatbelts?">Why seatbelts matter</button>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="Ask about road safety…" />
+      <button class="send-btn" id="chatSend" aria-label="Send message"><i class="ti ti-send" aria-hidden="true"></i></button>
+    </div>
+  </section>
+
+  <section id="screen-learn" class="screen" style="display:none;">
+    <p class="subtext">Safety tips, then test yourself in the road-crossing game.</p>
+
+    <div class="card-list" id="tipsList" style="margin-bottom:16px;"></div>
+
+    <div class="game-wrap" id="gameWrap">
+      <div class="game-header">
+        <p class="game-title">Cross Safely</p>
+        <p class="game-sub" id="gameStatus">Answer correctly to move forward. Win with 5 correct in a row or 30 points. 3 wrong in a row ends the run.</p>
+      </div>
+
+      <div class="game-board" id="gameBoard">
+        <div class="road-lane" id="roadLane">
+          <div class="cloud c1">☁️</div>
+          <div class="cloud c2">☁️</div>
+          <div class="traffic-car tc1">🚙</div>
+          <div class="traffic-car tc2 rev">🚗</div>
+          <div class="traffic-car tc3">🚕</div>
+          <div class="traffic-car tc4 rev">🚌</div>
+          <div class="finish-line">30 PTS</div>
+          <div class="car-token" id="carToken">🚗</div>
+        </div>
+        <div class="game-meta">
+          <span id="progressLabel">0 / 30 pts</span>
+          <span id="correctStreakLabel">Streak: 0 / 5</span>
+        </div>
+        <div class="streak-stars" id="streakStars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+        <div class="game-meta">
+          <span id="streakLabel">Wrong streak: 0 / 3</span>
+        </div>
+      </div>
+
+      <div class="question-card" id="questionCard">
+        <p class="q-text" id="qText">Loading question…</p>
+        <div class="q-options" id="qOptions"></div>
+      </div>
+
+      <div class="game-end" id="gameEnd" style="display:none;">
+        <p class="end-title" id="endTitle"></p>
+        <p class="end-desc" id="endDesc"></p>
+        <button class="find-btn" id="restartGameBtn">Play again</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-profile" class="screen" style="display:none;">
+    <div class="profile-head">
+      <div class="avatar">JY</div>
+      <div>
+        <p style="margin:0;font-size:14px;font-weight:600;">Jun Yuan</p>
+        <p style="margin:1px 0 0;font-size:12px;color:var(--muted);">Age group 18–24</p>
+      </div>
+    </div>
+    <div class="settings-list">
+      <div class="setting-row"><span>Travel mode</span><span class="v">Driving</span></div>
+      <div class="setting-row"><span>Risk alerts</span><span class="v on">On</span></div>
+      <div class="setting-row"><span>Night mode routing</span><span class="v on">On</span></div>
+      <div class="setting-row"><span>Weekly safety report</span><span class="v">Sundays</span></div>
+    </div>
+  </section>
+
+  <nav class="tabbar">
+    <button class="tabbtn active" data-tab="map"><i class="ti ti-map-2" aria-hidden="true"></i><span>Map</span></button>
+    <button class="tabbtn" data-tab="alerts"><i class="ti ti-bell" aria-hidden="true"></i><span>Alerts</span></button>
+    <button class="tabbtn" data-tab="chat"><i class="ti ti-message-circle" aria-hidden="true"></i><span>Assistant</span></button>
+    <button class="tabbtn" data-tab="learn"><i class="ti ti-school" aria-hidden="true"></i><span>Learn</span></button>
+    <button class="tabbtn" data-tab="profile"><i class="ti ti-user" aria-hidden="true"></i><span>Profile</span></button>
+  </nav>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ---------- Tab navigation ---------- */
+document.querySelectorAll('.tabbtn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.screen').forEach(s=>{s.style.display='none';s.classList.remove('active');});
+    document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
+    const el=document.getElementById('screen-'+btn.dataset.tab);
+    el.style.display='flex'; el.classList.add('active');
+    btn.classList.add('active');
+    if(btn.dataset.tab==='map'){ setTimeout(()=>map.invalidateSize(),50); }
+  });
+});
+
+/* ---------- Locations (Singapore) ---------- */
+const LOCATIONS = {
+  "Tampines MRT":        [1.3546, 103.9437],
+  "Bedok":               [1.3236, 103.9273],
+  "Eunos":               [1.3197, 103.9033],
+  "Kallang":             [1.3113, 103.8713],
+  "City Hall":           [1.2931, 103.8520],
+  "Raffles Place":       [1.2839, 103.8515],
+  "Orchard Road":        [1.3048, 103.8318],
+  "Bukit Timah":         [1.3294, 103.8021],
+  "Jurong East":         [1.3329, 103.7436],
+  "Toa Payoh":           [1.3343, 103.8474],
+  "Changi Airport":      [1.3644, 103.9915],
+  "Republic Polytechnic":[1.4444, 103.7864],
+  "Ngee Ann Polytechnic":[1.3374, 103.7729],
+  "Temasek Polytechnic": [1.3396, 103.9317],
+  "Singapore Polytechnic":[1.3300, 103.7764],
+  "Nanyang Polytechnic": [1.3799, 103.8503],
+  "NUS":                 [1.2966, 103.7764],
+  "NTU":                 [1.3483, 103.6831]
+};
+
+/* Hazards keyed by name near the default route, real-feeling but illustrative */
+const HAZARDS = [
+  { name:"Eunos flyover merge", pos:[1.3197,103.9033], level:"caution", desc:"Frequent last-minute lane merging near the flyover." },
+  { name:"Kallang stretch", pos:[1.3113,103.8713], level:"high", desc:"Accident-prone stretch, 3 incidents reported this month." },
+  { name:"Orchard Road crossing", pos:[1.3048,103.8318], level:"caution", desc:"Heavy pedestrian and foot traffic at peak hours." },
+  { name:"ECP viaduct", pos:[1.3005,103.9060], level:"high", desc:"Reduced visibility reported during heavy rain." }
+];
+
+/* ---------- Populate location suggestions & inputs ---------- */
+const fromInput=document.getElementById('fromInput');
+const toInput=document.getElementById('toInput');
+const locList=document.getElementById('locList');
+Object.keys(LOCATIONS).forEach(name=>{
+  locList.appendChild(new Option(name,name));
+});
+document.getElementById('swapBtn').addEventListener('click',()=>{
+  const f=fromInput.value; fromInput.value=toInput.value; toInput.value=f;
+});
+
+/* Resolves a typed location: known preset, a 6-digit Singapore postal
+   code, or a free-text place/address, geocoded via OpenStreetMap
+   Nominatim and bounded to Singapore. */
+const geocodeCache={};
+const SG_VIEWBOX='103.55,1.15,104.15,1.49'; // left,top,right,bottom covering all of Singapore
+
+async function nominatimSearch(params){
+  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=0&'+params;
+  const res=await fetch(url,{headers:{'Accept-Language':'en'}});
+  if(!res.ok) throw new Error('Location lookup failed, please try again');
+  return res.json();
+}
+
+async function resolveLocation(text){
+  const trimmed=text.trim();
+  if(!trimmed) throw new Error('Enter a location');
+  if(LOCATIONS[trimmed]) return LOCATIONS[trimmed];
+  if(geocodeCache[trimmed]) return geocodeCache[trimmed];
+
+  const digitsOnly=trimmed.replace(/\D/g,'');
+  const isPostalCode=/^\d{6}$/.test(trimmed) || (/^s?\d{6}$/i.test(trimmed) && digitsOnly.length===6);
+
+  let data=[];
+
+  if(isPostalCode){
+    // Structured postcode search works far more reliably than free text for Singapore's 6-digit codes.
+    data=await nominatimSearch('postalcode='+digitsOnly+'&country=Singapore&limit=1');
+  }
+
+  if(!data.length){
+    // Bound to Singapore's bounding box (more forgiving than countrycodes for named places like schools).
+    const query=/singapore/i.test(trimmed) ? trimmed : trimmed+', Singapore';
+    data=await nominatimSearch('q='+encodeURIComponent(query)+'&viewbox='+SG_VIEWBOX+'&bounded=1&limit=3');
+  }
+
+  if(!data.length){
+    // Last resort: plain query restricted only by country code, in case viewbox was too tight.
+    data=await nominatimSearch('q='+encodeURIComponent(trimmed)+'&countrycodes=sg&limit=3');
+  }
+
+  if(!data.length) throw new Error('Could not find "'+trimmed+'" in Singapore. Try a fuller name or a 6-digit postal code.');
+
+  const result=[parseFloat(data[0].lat), parseFloat(data[0].lon)];
+  geocodeCache[trimmed]=result;
+  return result;
+}
+
+/* ---------- Map setup ---------- */
+const map=L.map('map',{zoomControl:true,scrollWheelZoom:false}).setView([1.3143,103.8700],11.3);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'&copy; OpenStreetMap contributors', maxZoom:18
+}).addTo(map);
+
+let routeLayers=[];
+let hazardMarkers=[];
+let liveHazards=[]; // populated from live traffic incidents, if a data source is configured
+let weatherState=null; // populated from the live weather forecast
+
+function riskColor(level){
+  if(level==='high') return '#E24B4A';
+  if(level==='caution') return '#EF9F27';
+  return '#1D9E75';
+}
+
+function allHazards(){
+  return HAZARDS.concat(liveHazards);
+}
+
+function clearRoute(){
+  routeLayers.forEach(l=>map.removeLayer(l));
+  routeLayers=[];
+}
+
+function exclamationIcon(level){
+  const color=riskColor(level);
+  return L.divIcon({
+    className:'hazard-exclaim',
+    html:'<div style="width:22px;height:22px;border-radius:50% 50% 50% 4px;background:'+color+';transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.35);">'
+       + '<span style="transform:rotate(45deg);color:#fff;font-weight:800;font-size:13px;line-height:1;">!</span></div>',
+    iconSize:[22,22], iconAnchor:[11,20]
+  });
+}
+
+function drawHazards(){
+  hazardMarkers.forEach(m=>map.removeLayer(m));
+  hazardMarkers=[];
+  allHazards().forEach(h=>{
+    const marker=L.marker(h.pos,{icon:exclamationIcon(h.level)}).addTo(map);
+    marker.bindPopup(`<strong>${h.name}</strong><br>${h.desc}`);
+    hazardMarkers.push(marker);
+  });
+}
+drawHazards();
+
+/* Haversine-ish distance in km, good enough at Singapore's scale */
+function distKm(a,b){
+  const dLat=(a[0]-b[0])*111;
+  const dLng=(a[1]-b[1])*111*Math.cos(a[0]*Math.PI/180);
+  return Math.hypot(dLat,dLng);
+}
+
+function hazardLevelAt(pt){
+  let level=null;
+  allHazards().forEach(h=>{
+    if(distKm(pt,h.pos) < 0.5){
+      if(h.level==='high') level='high';
+      else if(level!=='high') level='caution';
+    }
+  });
+  // Heavy rain or a storm bumps an otherwise-clear point to at least "caution",
+  // since wet roads and low visibility raise risk everywhere, not just at fixed hazards.
+  if(!level && weatherState && weatherState.severity==='high') level='caution';
+  return level;
+}
+
+function hazardsNear(routeCoords){
+  return allHazards().filter(h=>routeCoords.some(pt=>distKm(pt,h.pos)<0.5));
+}
+
+/* ---------- Live weather (Open-Meteo, free, no API key needed) ---------- */
+function classifyWeather(code,precipitation){
+  // Open-Meteo WMO weather codes: 51-67 drizzle/rain, 80-82 showers, 95-99 thunderstorm
+  const isThunder = code>=95;
+  const isRain = (code>=51 && code<=67) || (code>=80 && code<=82) || isThunder;
+  let severity='low';
+  if(isThunder || precipitation>=4) severity='high';
+  else if(isRain || precipitation>0) severity='caution';
+  return {isRain, isThunder, severity};
+}
+
+async function fetchWeather(){
+  try{
+    const url='https://api.open-meteo.com/v1/forecast?latitude=1.3521&longitude=103.8198&current=temperature_2m,precipitation,weathercode,windspeed_10m&timezone=Asia%2FSingapore';
+    const res=await fetch(url);
+    if(!res.ok) throw new Error('weather unavailable');
+    const data=await res.json();
+    const cur=data.current;
+    const cls=classifyWeather(cur.weathercode,cur.precipitation);
+    weatherState={
+      tempC:cur.temperature_2m,
+      precipitation:cur.precipitation,
+      windKmh:cur.windspeed_10m,
+      ...cls
+    };
+  }catch(err){
+    weatherState=null;
+  }
+  renderWeatherBanner();
+}
+
+function renderWeatherBanner(){
+  const el=document.getElementById('weatherBanner');
+  if(!el) return;
+  if(!weatherState){
+    el.style.display='none';
+    return;
+  }
+  el.style.display='flex';
+  const icon = weatherState.isThunder ? 'ti-cloud-storm' : weatherState.isRain ? 'ti-cloud-rain' : 'ti-sun';
+  const label = weatherState.isThunder ? 'Thunderstorm in Singapore right now'
+    : weatherState.isRain ? 'Rain in Singapore right now'
+    : 'Clear conditions in Singapore';
+  el.querySelector('.w-icon').className='ti '+icon+' w-icon';
+  el.querySelector('.w-text').textContent = label+' · '+Math.round(weatherState.tempC)+'°C';
+  el.querySelector('.w-sub').textContent = weatherState.severity==='high'
+    ? 'Routing adds extra caution across the board while this lasts.'
+    : weatherState.severity==='caution'
+    ? 'Wet roads nearby — braking distance is longer than usual.'
+    : 'No weather-related routing penalty right now.';
+}
+
+/* ---------- Live traffic incidents (optional) ----------
+   Singapore's LTA DataMall provides real incident data, but it requires a
+   free AccountKey (https://datamall.lta.gov.sg) and is best called from a
+   small backend proxy since it isn't CORS-open for direct browser calls.
+   Paste a key below to try it directly; the app works fine without one and
+   simply relies on the static hazard list plus live weather in that case. */
+const LTA_API_KEY='';
+
+async function fetchTrafficIncidents(){
+  if(!LTA_API_KEY) return;
+  try{
+    const res=await fetch('https://datamall2.mytransport.sg/ltaodataservice/TrafficIncidents',{
+      headers:{ 'AccountKey':LTA_API_KEY, 'accept':'application/json' }
+    });
+    if(!res.ok) throw new Error('traffic feed unavailable');
+    const data=await res.json();
+    liveHazards=(data.value||[]).map(inc=>({
+      name:inc.Type||'Traffic incident',
+      pos:[inc.Latitude,inc.Longitude],
+      level:'high',
+      desc:inc.Message||'Live incident reported by LTA.'
+    }));
+    drawHazards();
+  }catch(err){
+    liveHazards=[];
+  }
+}
+
+
+
+
+/* Calls the OSRM public road-routing API so paths follow actual streets,
+   never a straight line through buildings. waypoints: array of [lat,lng]. */
+async function fetchRoadRoute(waypoints){
+  const coordStr=waypoints.map(p=>p[1]+','+p[0]).join(';');
+  const url='https://router.project-osrm.org/route/v1/driving/'+coordStr+'?overview=full&geometries=geojson';
+  const res=await fetch(url);
+  if(!res.ok) throw new Error('routing failed');
+  const data=await res.json();
+  if(!data.routes || !data.routes.length) throw new Error('no route');
+  const route=data.routes[0];
+  const coords=route.geometry.coordinates.map(c=>[c[1],c[0]]);
+  const minutes=Math.max(1,Math.round(route.duration/60));
+  return {coords, minutes};
+}
+
+function buildWaypoints(start,end,avoidHazards){
+  let waypoints=[start];
+  if(avoidHazards){
+    HAZARDS.filter(h=>h.level==='high').forEach(h=>{
+      waypoints.push([h.pos[0]+0.012, h.pos[1]-0.01]);
+    });
+  }
+  waypoints.push(end);
+  return waypoints;
+}
+
+function drawRoute(routeCoords){
+  clearRoute();
+  if(!routeCoords || !routeCoords.length) return;
+  let segStart=0;
+  let segColor=riskColor('safe')==='#1D9E75' ? '#1D9E75' : '#1D9E75';
+  function colorFor(pt){
+    const lvl=hazardLevelAt(pt);
+    return lvl ? riskColor(lvl) : '#1D9E75';
+  }
+  segColor=colorFor(routeCoords[0]);
+  for(let i=1;i<routeCoords.length;i++){
+    const c=colorFor(routeCoords[i]);
+    if(c!==segColor){
+      const line=L.polyline(routeCoords.slice(segStart,i+1),{color:segColor,weight:6,opacity:0.9,lineCap:'round'}).addTo(map);
+      routeLayers.push(line);
+      segStart=i;
+      segColor=c;
+    }
+  }
+  const line=L.polyline(routeCoords.slice(segStart),{color:segColor,weight:6,opacity:0.9,lineCap:'round'}).addTo(map);
+  routeLayers.push(line);
+
+  const startMarker=L.marker(routeCoords[0]).addTo(map);
+  const endMarker=L.marker(routeCoords[routeCoords.length-1]).addTo(map);
+  routeLayers.push(startMarker,endMarker);
+  map.fitBounds(L.latLngBounds(routeCoords),{padding:[30,30]});
+}
+
+let currentFastRoute=null;
+let currentSafeRoute=null;
+let fastMinutes=0, safeMinutes=0;
+let activeRoute='safe';
+
+function setActiveCard(which){
+  activeRoute=which;
+  const safeCard=document.getElementById('safeCard');
+  const fastCard=document.getElementById('fastCard');
+  const safeBadge=document.getElementById('safeBadge');
+  const fastBadge=document.getElementById('fastBadge');
+  if(which==='safe'){
+    safeCard.classList.add('chosen');
+    fastCard.classList.remove('chosen');
+    safeBadge.textContent='Suggested · Showing';
+    safeBadge.className='badge chosen';
+    fastBadge.textContent='Direct';
+    fastBadge.className='badge';
+    fastBadge.style.background='var(--red-light)';
+    fastBadge.style.color='var(--red-dark)';
+    if(currentSafeRoute) drawRoute(currentSafeRoute);
+  } else {
+    fastCard.classList.add('chosen');
+    safeCard.classList.remove('chosen');
+    fastBadge.textContent='Direct · Showing';
+    fastBadge.className='badge chosen';
+    safeBadge.textContent='Suggested';
+    safeBadge.className='badge';
+    safeBadge.style.background='var(--green-light)';
+    safeBadge.style.color='var(--green-dark)';
+    if(currentFastRoute) drawRoute(currentFastRoute);
+  }
+}
+
+async function findRoute(){
+  const fromText=fromInput.value, toText=toInput.value;
+  if(fromText.trim()==='' || toText.trim()===''){ return; }
+
+  const findBtn=document.getElementById('findBtn');
+  findBtn.textContent='Checking conditions…';
+  findBtn.disabled=true;
+
+  try{
+    const [startPt,endPt]=await Promise.all([
+      resolveLocation(fromText),
+      resolveLocation(toText),
+      fetchWeather(),
+      fetchTrafficIncidents()
+    ]);
+
+    findBtn.textContent='Finding roads…';
+    const fastWaypoints=buildWaypoints(startPt,endPt,false);
+    const safeWaypoints=buildWaypoints(startPt,endPt,true);
+    const [fastResult,safeResult]=await Promise.all([
+      fetchRoadRoute(fastWaypoints),
+      fetchRoadRoute(safeWaypoints)
+    ]);
+    currentFastRoute=fastResult.coords;
+    currentSafeRoute=safeResult.coords;
+    fastMinutes=fastResult.minutes;
+    safeMinutes=safeResult.minutes;
+
+    document.getElementById('fastMins').textContent=fastMinutes+' min';
+    document.getElementById('safeMins').textContent=safeMinutes+' min';
+    document.getElementById('routeSummary').style.display='flex';
+    drawHazards();
+
+    const hazardsOnFast=hazardsNear(currentFastRoute);
+    const highOnFast=hazardsOnFast.find(h=>h.level==='high');
+    const weatherRisky = weatherState && weatherState.severity==='high';
+    const banner=document.getElementById('hazardBanner');
+
+    if(!highOnFast && !weatherRisky){
+      // Nothing hazardous on the direct route: the fastest route is the recommendation.
+      setActiveCard('fast');
+      banner.className='alert-banner clear';
+      banner.querySelector('i').className='ti ti-shield-check';
+      document.getElementById('hazardTitle').textContent='No hazards on this route';
+      document.getElementById('hazardDesc').textContent='Conditions look clear — take the fastest route, it\'s also the safest one right now.';
+      banner.style.display='flex';
+    } else {
+      setActiveCard('safe');
+      banner.className='alert-banner';
+      banner.querySelector('i').className='ti ti-alert-triangle';
+      const flagged=highOnFast || hazardsOnFast[0];
+      if(flagged){
+        document.getElementById('hazardTitle').textContent=flagged.name;
+        document.getElementById('hazardDesc').textContent=flagged.desc+' The suggested route follows roads around it for about '+Math.max(0,safeMinutes-fastMinutes)+' extra min.';
+      } else if(weatherRisky){
+        document.getElementById('hazardTitle').textContent='Poor weather along this route';
+        document.getElementById('hazardDesc').textContent='Heavy rain or a storm is active in Singapore right now, so the suggested route is recommended as the safer option.';
+      }
+      banner.style.display='flex';
+    }
+  }catch(err){
+    const banner=document.getElementById('hazardBanner');
+    banner.className='alert-banner';
+    banner.querySelector('i').className='ti ti-alert-triangle';
+    document.getElementById('hazardTitle').textContent='Could not plan this route';
+    document.getElementById('hazardDesc').textContent=(err && err.message) ? err.message : 'Check your internet connection and try again.';
+    banner.style.display='flex';
+  }finally{
+    findBtn.textContent='Find safest route';
+    findBtn.disabled=false;
+  }
+}
+document.getElementById('findBtn').addEventListener('click',findRoute);
+document.getElementById('safeCard').addEventListener('click',()=>setActiveCard('safe'));
+document.getElementById('fastCard').addEventListener('click',()=>setActiveCard('fast'));
+findRoute();
+
+/* ---------- Alerts screen ---------- */
+const ALERT_ITEMS=[
+  {icon:'ti-car-crash',color:'var(--red-dark)',t:'Collision reported',d:'Kallang stretch · 6 min ago'},
+  {icon:'ti-cloud-rain',color:'var(--amber-dark)',t:'Heavy rain, low visibility',d:'ECP viaduct · 12 min ago'},
+  {icon:'ti-walk',color:'#0C447C',t:'High foot traffic crossing',d:'Orchard Road · ongoing'},
+  {icon:'ti-road',color:'var(--amber-dark)',t:'Lane merging congestion',d:'Eunos flyover · 20 min ago'}
+];
+const alertsList=document.getElementById('alertsList');
+ALERT_ITEMS.forEach(a=>{
+  const div=document.createElement('div');
+  div.className='item-card';
+  div.innerHTML=`<i class="ti ${a.icon}" style="color:${a.color};" aria-hidden="true"></i><div><p class="t">${a.t}</p><p class="d">${a.d}</p></div>`;
+  alertsList.appendChild(div);
+});
+
+/* ---------- Chat assistant (rule-based, with a dynamic live-alerts lookup) ---------- */
+function alertsReply(){
+  const parts=[];
+  if(ALERT_ITEMS.length){
+    const list=ALERT_ITEMS.map(a=>a.t+' ('+a.d+')').join('; ');
+    parts.push('There '+(ALERT_ITEMS.length===1?'is':'are')+' currently '+ALERT_ITEMS.length+' active alert'+(ALERT_ITEMS.length===1?'':'s')+': '+list+'.');
+  } else {
+    parts.push('No active alerts right now.');
+  }
+  const highHazards=allHazards().filter(h=>h.level==='high');
+  if(highHazards.length){
+    parts.push('High-risk spots on the map right now: '+highHazards.map(h=>h.name).join(', ')+'.');
+  }
+  if(weatherState){
+    if(weatherState.severity==='high'){
+      parts.push('Weather is a factor too: it\'s currently '+(weatherState.isThunder?'stormy':'raining heavily')+' in Singapore ('+Math.round(weatherState.tempC)+'°C), so routes are adding extra caution.');
+    } else if(weatherState.severity==='caution'){
+      parts.push('Light rain is falling in Singapore right now ('+Math.round(weatherState.tempC)+'°C) — take it easy on the roads.');
+    } else {
+      parts.push('Weather is clear in Singapore right now ('+Math.round(weatherState.tempC)+'°C).');
+    }
+  }
+  return parts.join(' ');
+}
+
+const RESPONSES=[
+  { keys:['drunk','dui','drink driv','alcohol','intoxicat'], a:"It's illegal because alcohol slows reaction time, narrows your field of vision, and impairs judgment and coordination, all before you feel \"drunk.\" Crash risk rises sharply even below Singapore's legal limit, and a crash caused by impairment doesn't just risk the driver, it risks everyone else on the road. That's why Singapore's Road Traffic Act treats it as a serious offence, with fines, a driving ban, and jail time for repeat offences or if someone is hurt." },
+  { keys:['seatbelt','seat belt'], a:"A seatbelt spreads crash force across your hips and chest instead of your body hitting the windscreen or dashboard, and it keeps you from being thrown from the vehicle entirely, which is often fatal. That's why it's mandatory in the front and back seats." },
+  { keys:['phone','text','distract'], a:"Looking at a phone for even 2 seconds at 60km/h means you travel roughly 30 metres essentially blind. Texting or calling while driving is illegal in Singapore because that split-second delay in noticing a pedestrian or braking car is enough to cause a serious crash." },
+  { keys:['fatigue','tired','drowsy','sleepy'], a:"Driving tired causes microsleeps, brief seconds where your brain effectively switches off, which is why fatigued driving is compared to drink driving in how much it slows reaction time. If you're drowsy, pull over and rest rather than pushing through." },
+  { keys:['red light','run the light','beat the light','jump the light'], a:"Running a red light is illegal because junctions are where crossing traffic paths meet. A vehicle entering on red can T-bone a car crossing legally on green, which tends to cause more serious injuries than a rear-end collision. The rule exists to keep those crossing paths predictable." },
+  { keys:['helmet'], a:"Helmets reduce the risk of fatal head injury by absorbing impact force that would otherwise go directly to the skull. For motorcyclists, that's often the difference between a survivable fall and a fatal one, which is why it's a legal requirement, not just a recommendation." },
+  { keys:['speed limit','why speed'], a:"Speed limits are set based on how much distance a driver needs to see a hazard, react, and stop, plus how survivable a crash is at that speed. A pedestrian hit at 30km/h has a good chance of survival; at 60km/h that chance drops sharply, because kinetic energy in a crash rises with the square of speed, not in a straight line. That's why limits are lower near schools and crossings specifically." },
+  { keys:['tailgat','follow too close','close behind'], a:"Tailgating removes your reaction buffer entirely. If the car ahead brakes suddenly, at a 1-second gap you may not physically have time to stop before hitting them, regardless of how good your reflexes are. A 3-second gap gives you time to perceive, decide, and brake before contact." },
+  { keys:['jaywalk','cross where','cross anywhere'], a:"Jaywalking laws exist because drivers predict pedestrian movement at marked crossings and junctions, not mid-block. Crossing outside those points removes that predictability for both sides, which is why a large share of pedestrian fatalities happen away from designated crossings." },
+  { keys:['light','cross','junction','pedestrian'], a:"Stop at the curb, make eye contact with drivers, and cross only once both directions are clear. Avoid crossing between parked vehicles." },
+  { keys:['night','motorbike','ride','dark'], a:"Wear reflective gear, keep headlights on low beam in traffic, and increase following distance since braking distance feels shorter at night." },
+  { keys:['rain','wet','weather','flood'], a:"Slow down, increase following distance, and avoid sudden braking. If visibility drops sharply, pull over safely rather than continuing." },
+  { keys:['kallang'], a:"Kallang stretch has had 3 reported incidents this month. Navigator+ routes around it by default when you search a route through the area." },
+  { keys:['speed','fast','quick'], a:"A route that's a few minutes slower but avoids a reported hazard is usually the better trade. Speed differences under 5 minutes rarely outweigh the risk." }
+];
+function botReply(msg){
+  const lower=msg.toLowerCase();
+  if(/\balert|incident|happening now|any accident|traffic (update|now)|anything (going on|wrong)|what'?s going on/.test(lower)){
+    return alertsReply();
+  }
+  for(const r of RESPONSES){
+    if(r.keys.some(k=>lower.includes(k))) return r.a;
+  }
+  return "I can explain the reasoning behind road laws (drink driving, speed limits, tailgating, jaywalking, seatbelts, red lights, helmets), give safety tips for crossing, night riding, or rain, or check current alerts and weather. Try \"why is drink driving illegal?\" or \"any alerts right now?\"";
+}
+const chatLog=document.getElementById('chatLog');
+function addBubble(text,who){
+  const div=document.createElement('div');
+  div.className='bubble '+who;
+  div.textContent=text;
+  chatLog.appendChild(div);
+  chatLog.scrollTop=chatLog.scrollHeight;
+}
+function sendChat(text){
+  if(!text.trim()) return;
+  addBubble(text,'user');
+  setTimeout(()=>addBubble(botReply(text),'bot'),300);
+}
+document.getElementById('chatSend').addEventListener('click',()=>{
+  const input=document.getElementById('chatInput');
+  sendChat(input.value);
+  input.value='';
+});
+document.getElementById('chatInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    sendChat(e.target.value);
+    e.target.value='';
+  }
+});
+document.querySelectorAll('.suggest-chip').forEach(chip=>{
+  chip.addEventListener('click',()=>sendChat(chip.dataset.q));
+});
+
+/* ---------- Education: safety tips ---------- */
+const TIPS=[
+  { icon:'ti-eye', color:'#0C447C', t:'Scan, don\'t stare', d:'Keep your eyes moving between mirrors, blind spots, and the road ahead, not fixed on one point.' },
+  { icon:'ti-ruler-2', color:'var(--green-dark)', t:'Keep a 3-second gap', d:'Pick a fixed point the car ahead passes, and count 3 seconds before you reach it yourself.' },
+  { icon:'ti-phone-off', color:'var(--red-dark)', t:'Phone stays out of reach', d:'A glance at a notification at 60km/h covers over 15 metres blind.' },
+  { icon:'ti-cloud-rain', color:'var(--amber-dark)', t:'Slow down early in rain', d:'Braking distance can double on wet roads, so ease off the accelerator well before junctions.' }
+];
+const tipsList=document.getElementById('tipsList');
+TIPS.forEach(tip=>{
+  const div=document.createElement('div');
+  div.className='item-card';
+  div.innerHTML=`<i class="ti ${tip.icon}" style="color:${tip.color};" aria-hidden="true"></i><div><p class="t">${tip.t}</p><p class="d">${tip.d}</p></div>`;
+  tipsList.appendChild(div);
+});
+
+/* ---------- Education: Cross Safely game ---------- */
+const GAME_QUESTIONS=[
+  { q:"What should you do at a pedestrian crossing with no traffic light?", options:["Cross without looking","Stop, look both ways, then cross when clear","Run across quickly","Wait for someone else to cross first"], correct:1 },
+  { q:"How far back should you stay from the car in front on the expressway?", options:["Right behind them to save space","At least a 3-second gap","Only matters in the rain","As close as possible to save fuel"], correct:1 },
+  { q:"It starts raining heavily while you're driving. What's the safest move?", options:["Speed up to get home faster","Slow down and increase following distance","Turn off your headlights","Keep the same speed"], correct:1 },
+  { q:"You're about to cross and see a car indicating to turn into your path. What do you do?", options:["Step out anyway, you have right of way","Wait and make eye contact with the driver first","Wave your hands and walk fast","Assume they've seen you"], correct:1 },
+  { q:"Riding a motorbike at night, what should you prioritise?", options:["Dark clothing to look cool","Reflective gear and low beam headlights","Riding faster since roads are empty","Turning off signals to save battery"], correct:1 },
+  { q:"What's the safest place to cross if there's no zebra crossing nearby?", options:["Between two parked cars","Anywhere convenient","A well-lit, open stretch with clear visibility both ways","Right after a bend in the road"], correct:2 },
+  { q:"A driver's phone lights up with a notification. What should they do?", options:["Check it quickly at a red light","Leave it and check it after stopping the car safely", "Ask a passenger to read it while driving","Glance at it briefly while moving"], correct:1 },
+  { q:"What increases stopping distance the most?", options:["Wet roads and high speed","A clean windscreen","Driving in daylight","Low fuel"], correct:0 },
+  { q:"You're a pedestrian and a road has no footpath. What's safest?", options:["Walk facing traffic, as far from the road as possible","Walk with your back to traffic","Walk in the middle of the road","Jog in the same direction as traffic"], correct:0 },
+  { q:"Before turning, what should a driver check first?", options:["Just the mirror","Mirror, blind spot, then signal","Only the signal","Nothing, if the road looks empty"], correct:1 }
+];
+
+const WIN_STREAK=5, WIN_SCORE=30, POINTS_PER_CORRECT=3;
+let gameScore=0, correctStreak=0, wrongStreak=0, gameOver=false, gameQueue=[];
+
+function shuffledQuestions(){
+  const arr=[...GAME_QUESTIONS];
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function updateGameBoard(){
+  document.getElementById('progressLabel').textContent=gameScore+' / '+WIN_SCORE+' pts';
+  document.getElementById('correctStreakLabel').textContent='Streak: '+correctStreak+' / '+WIN_STREAK;
+  document.getElementById('streakLabel').textContent='Wrong streak: '+wrongStreak+' / 3';
+  const pct=5 + Math.min(1, gameScore/WIN_SCORE)*88; // keep car within the visible lane
+  document.getElementById('carToken').style.bottom=pct+'%';
+  document.querySelectorAll('#streakStars .star').forEach((s,i)=>{
+    s.classList.toggle('lit', i < correctStreak);
+  });
+  return pct;
+}
+
+function spawnFloatingPoints(text,bottomPct){
+  const el=document.createElement('div');
+  el.className='points-pop';
+  el.textContent=text;
+  el.style.bottom=bottomPct+'%';
+  document.getElementById('roadLane').appendChild(el);
+  setTimeout(()=>el.remove(),900);
+}
+
+function spawnConfetti(){
+  const layer=document.createElement('div');
+  layer.className='confetti-layer';
+  const colors=['#E24B4A','#EF9F27','#1D9E75','#0C447C','#F5C542'];
+  for(let i=0;i<26;i++){
+    const p=document.createElement('div');
+    p.className='confetti-piece';
+    p.style.left=Math.random()*100+'%';
+    p.style.background=colors[Math.floor(Math.random()*colors.length)];
+    p.style.animationDelay=(Math.random()*0.35)+'s';
+    p.style.animationDuration=(1.1+Math.random()*0.8)+'s';
+    layer.appendChild(p);
+  }
+  document.getElementById('gameWrap').appendChild(layer);
+  setTimeout(()=>layer.remove(),2200);
+}
+
+function loadNextQuestion(){
+  if(!gameQueue.length) gameQueue=shuffledQuestions();
+  const item=gameQueue.pop();
+  document.getElementById('qText').textContent=item.q;
+  const optsWrap=document.getElementById('qOptions');
+  optsWrap.innerHTML='';
+  item.options.forEach((opt,idx)=>{
+    const btn=document.createElement('button');
+    btn.className='q-option-btn';
+    btn.textContent=opt;
+    btn.addEventListener('click',()=>answerQuestion(idx,item.correct,btn,optsWrap));
+    optsWrap.appendChild(btn);
+  });
+}
+
+function answerQuestion(chosenIdx,correctIdx,btn,optsWrap){
+  if(gameOver) return;
+  const allBtns=optsWrap.querySelectorAll('.q-option-btn');
+  allBtns.forEach(b=>b.disabled=true);
+  const carEl=document.getElementById('carToken');
+  const questionCardEl=document.getElementById('questionCard');
+
+  if(chosenIdx===correctIdx){
+    btn.classList.add('correct');
+    gameScore+=POINTS_PER_CORRECT;
+    correctStreak++;
+    wrongStreak=0;
+    const pct=updateGameBoard();
+    spawnFloatingPoints('+'+POINTS_PER_CORRECT,pct);
+    carEl.classList.remove('hop'); void carEl.offsetWidth; carEl.classList.add('hop');
+  } else {
+    btn.classList.add('wrong');
+    allBtns[correctIdx].classList.add('correct');
+    correctStreak=0;
+    wrongStreak++;
+    updateGameBoard();
+    carEl.classList.remove('shudder'); void carEl.offsetWidth; carEl.classList.add('shudder');
+    questionCardEl.classList.remove('shake'); void questionCardEl.offsetWidth; questionCardEl.classList.add('shake');
+  }
+
+  setTimeout(()=>{
+    // win the run: 5 correct answers in a row, or 30 points, whichever comes first
+    if(correctStreak>=WIN_STREAK || gameScore>=WIN_SCORE){
+      endGame('win');
+    } else if(wrongStreak>=3){
+      // run ends: a distinct "lost" screen only if nothing was ever scored
+      endGame(gameScore===0 ? 'lost' : 'ended');
+    } else {
+      loadNextQuestion();
+    }
+  },700);
+}
+
+function endGame(result){
+  gameOver=true;
+  document.getElementById('questionCard').style.display='none';
+  const endEl=document.getElementById('gameEnd');
+  endEl.style.display='block';
+  const titleEl=document.getElementById('endTitle');
+  const descEl=document.getElementById('endDesc');
+  titleEl.className='end-title';
+
+  if(result==='win'){
+    titleEl.textContent='You win! 🎉';
+    titleEl.classList.add('win');
+    descEl.textContent = correctStreak>=WIN_STREAK
+      ? WIN_STREAK+' correct answers in a row — that\'s real road sense.'
+      : 'Reached '+WIN_SCORE+' points — safe and steady wins it.';
+    spawnConfetti();
+  } else if(result==='lost'){
+    titleEl.textContent='You lost';
+    titleEl.classList.add('lost');
+    descEl.textContent='Three wrong answers in a row with no points on the board. Review the tips above and try again.';
+  } else {
+    titleEl.textContent='Run ended';
+    descEl.textContent='Three wrong answers in a row. You still banked '+gameScore+' points — try again for the win.';
+  }
+}
+
+function startGame(){
+  gameScore=0; correctStreak=0; wrongStreak=0; gameOver=false; gameQueue=[];
+  document.getElementById('questionCard').style.display='block';
+  document.getElementById('gameEnd').style.display='none';
+  document.getElementById('carToken').className='car-token';
+  document.querySelectorAll('.confetti-layer').forEach(l=>l.remove());
+  updateGameBoard();
+  loadNextQuestion();
+}
+document.getElementById('restartGameBtn').addEventListener('click',startGame);
+startGame();
+
+</script>
+</body>
+</html>
