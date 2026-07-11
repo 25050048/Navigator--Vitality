@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigator AI Chatbot | Navigator +</title>
+    <%- include('partials/styles.ejs') %>
+    <style>
+        .chat-container {
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 18px;
+            box-shadow: 0 4px 18px rgba(22,48,46,0.08);
+            overflow: hidden;
+        }
+        .chatpage-header {
+            background: linear-gradient(135deg, var(--brand-teal-dark), var(--brand-teal));
+            color: white;
+            padding: 26px 24px;
+            text-align: center;
+        }
+        .chatpage-header h1 { color: white; margin: 0; font-size: 26px; }
+        .chatpage-header p { margin: 8px 0 0; font-size: 14px; color: var(--brand-teal-light); }
+
+        #chatMessages {
+            height: 440px;
+            overflow-y: auto;
+            padding: 22px;
+            background-color: var(--brand-bg);
+        }
+        .message {
+            max-width: 75%;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 15px;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            font-size: 15px;
+        }
+        .bot-message {
+            background-color: white;
+            color: var(--brand-ink);
+            margin-right: auto;
+            box-shadow: 0 1px 4px rgba(22,48,46,0.08);
+        }
+        .user-message {
+            background-color: var(--brand-teal);
+            color: white;
+            margin-left: auto;
+        }
+        .chat-input-area {
+            display: flex;
+            padding: 16px;
+            border-top: 1px solid #eee;
+            background-color: white;
+        }
+        #userInput {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            outline: none;
+            font-size: 15px;
+        }
+        #userInput:focus { border-color: var(--brand-teal); }
+        #sendButton {
+            margin-left: 10px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            background-color: var(--brand-red);
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        #sendButton:hover { background-color: var(--brand-red-dark); }
+        #sendButton:disabled { background-color: #aaa; cursor: not-allowed; }
+
+        .disclaimer-note {
+            text-align: center;
+            font-size: 13px;
+            color: var(--brand-ink-soft);
+            margin: 16px auto 0;
+            max-width: 700px;
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar.ejs', { page: 'chatbox' }) %>
+
+    <div class="page-hero text-center">
+        <div class="container">
+            <h1 class="display-6">Navigator AI</h1>
+            <p class="mx-auto">Ask a road safety question and get a quick, friendly answer.</p>
+        </div>
+    </div>
+
+    <div class="container my-4 mb-5">
+        <div class="chat-container">
+            <div class="chatpage-header">
+                <h1>Navigator AI</h1>
+                <p>Ask me anything about road safety</p>
+            </div>
+
+            <div id="chatMessages">
+                <div class="message bot-message">
+                    Hello! I'm Navigator AI. Ask me about pedestrian safety, safe driving, cycling, PMDs, or what to do during a road accident.
+                </div>
+            </div>
+
+            <form id="chatForm" class="chat-input-area">
+                <input
+                    type="text"
+                    id="userInput"
+                    placeholder="Type your road-safety question..."
+                    autocomplete="off"
+                    required
+                >
+                <button type="submit" id="sendButton">Send</button>
+            </form>
+        </div>
+
+        <p class="disclaimer-note">
+            Navigator AI can make mistakes. In a genuine emergency, always call 999 or 995 directly rather than relying on this chat.
+        </p>
+    </div>
+
+    <%- include('partials/footer.ejs') %>
+
+    <script>
+        const chatForm = document.getElementById('chatForm');
+        const userInput = document.getElementById('userInput');
+        const chatMessages = document.getElementById('chatMessages');
+        const sendButton = document.getElementById('sendButton');
+
+        function addMessage(text, messageType) {
+            const message = document.createElement('div');
+            message.classList.add('message', messageType);
+            message.textContent = text;
+            chatMessages.appendChild(message);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return message;
+        }
+
+        chatForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const message = userInput.value.trim();
+            if (message === '') return;
+
+            addMessage(message, 'user-message');
+            userInput.value = '';
+            sendButton.disabled = true;
+
+            const loadingMessage = addMessage('Navigator AI is thinking...', 'bot-message');
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ message: message })
+                });
+                const data = await response.json();
+                loadingMessage.textContent = data.reply || 'Sorry, I could not answer that question.';
+            } catch (error) {
+                loadingMessage.textContent = 'Sorry, I could not answer your question. Please try again.';
+            }
+
+            sendButton.disabled = false;
+            userInput.focus();
+        });
+    </script>
+</body>
+</html>

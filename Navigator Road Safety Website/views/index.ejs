@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Navigator+ teaches Singapore's youth how to read the road — pedestrians, cyclists, PMD riders and future drivers. Free road safety guidance, data and tools.">
+    <title>Navigator+ — Cross Safe? Look, Don't Guess.</title>
+    <%- include('partials/styles.ejs') %>
+    <style>
+        body { overflow-x: hidden; }
+
+        /* ---------- Sticky landing nav ---------- */
+        .land-nav {
+            position: sticky; top: 0; z-index: 50;
+            background: rgba(22, 48, 46, 0.92);
+            backdrop-filter: blur(8px);
+            padding: 14px 0;
+        }
+        .land-nav .container { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+        .land-nav .brand-mark { display: flex; align-items: center; gap: 10px; color: var(--brand-nav-text); font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 19px; text-decoration: none; }
+        .land-nav .brand-mark img { height: 34px; }
+        .land-nav .land-links { display: flex; gap: 26px; list-style: none; margin: 0; padding: 0; }
+        .land-nav .land-links a { color: var(--brand-nav-text); opacity: 0.85; text-decoration: none; font-size: 14.5px; font-weight: 500; }
+        .land-nav .land-links a:hover { opacity: 1; text-decoration: underline; }
+        .land-nav .btn-brand { padding: 8px 20px; font-size: 14.5px; }
+        @media (max-width: 767px) { .land-nav .land-links { display: none; } }
+
+        /* ---------- Hero ---------- */
+        .land-hero {
+            background: radial-gradient(ellipse at top, var(--brand-teal) 0%, var(--brand-teal-dark) 65%);
+            color: white;
+            padding: 80px 20px 60px;
+            text-align: center;
+        }
+        .land-eyebrow {
+            display: inline-block; background: rgba(255,255,255,0.14); color: var(--brand-teal-light);
+            font-size: 13px; font-weight: 600; letter-spacing: 0.5px; padding: 6px 16px;
+            border-radius: 999px; margin-bottom: 22px;
+        }
+        .land-hero h1 { color: white; font-size: 46px; line-height: 1.2; max-width: 780px; margin: 0 auto 18px; }
+        .land-hero h1 em { font-style: normal; color: var(--brand-yellow); }
+        .land-hero .lead { color: var(--brand-teal-light); font-size: 18px; max-width: 620px; margin: 0 auto 32px; }
+        .land-hero .cta-row { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-bottom: 40px; }
+        .land-hero .scroll-hint { font-size: 12.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--brand-teal-light); opacity: 0.7; }
+        .land-hero .emoji-row { font-size: 30px; letter-spacing: 18px; margin-bottom: 10px; opacity: 0.9; }
+
+        /* ---------- Mission strip (3 short statements) ---------- */
+        .mission-strip { padding: 60px 0 20px; }
+        .mission-strip h2 { text-align: center; font-size: 27px; margin-bottom: 44px; }
+        .mission-item { text-align: center; padding: 0 18px; }
+        .mission-item .glyph { font-size: 30px; margin-bottom: 12px; }
+        .mission-item h3 { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 18px; color: var(--brand-teal-dark); margin-bottom: 10px; }
+        .mission-item p { color: var(--brand-ink-soft); font-size: 15px; margin: 0; }
+
+        /* ---------- Feature grid ---------- */
+        .land-features { padding: 50px 0 10px; }
+        .land-features .section-tag-wrap { text-align: center; margin-bottom: 40px; }
+
+        /* ---------- Highlight statement ---------- */
+        .highlight-block {
+            background: var(--brand-teal-light);
+            border-radius: 20px;
+            padding: 44px 40px;
+            margin: 60px 0;
+            text-align: center;
+        }
+        .highlight-block p { font-size: 20px; color: var(--brand-teal-dark); max-width: 760px; margin: 0 auto; line-height: 1.6; }
+        .highlight-block strong { color: var(--brand-red); }
+        .highlight-block .glow-caption { display: block; margin-top: 16px; font-size: 13px; color: var(--brand-teal); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+
+        /* ---------- Three steps ---------- */
+        .steps-section { padding: 20px 0 60px; }
+        .steps-section h2 { text-align: center; font-size: 27px; margin-bottom: 8px; }
+        .steps-section .sub { text-align: center; color: var(--brand-ink-soft); margin-bottom: 44px; }
+        .step-card { text-align: center; padding: 10px 16px; }
+        .step-num {
+            width: 46px; height: 46px; border-radius: 50%;
+            background: var(--brand-red); color: white; font-family: 'Poppins', sans-serif; font-weight: 800;
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 18px;
+        }
+        .step-card h3 { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 17px; color: var(--brand-red-dark); margin-bottom: 8px; }
+        .step-card p { color: var(--brand-ink-soft); font-size: 14.5px; margin: 0; }
+
+        /* ---------- Marquee strip ---------- */
+        .marquee-wrap { background: var(--brand-nav-dark); overflow: hidden; padding: 16px 0; }
+        .marquee-track { display: flex; width: max-content; animation: marquee 22s linear infinite; }
+        .marquee-track span {
+            color: var(--brand-nav-text); font-weight: 600; font-size: 14px; letter-spacing: 0.5px;
+            padding: 0 26px; white-space: nowrap; opacity: 0.85;
+        }
+        .marquee-track span.dot::after { content: "•"; margin-left: 26px; color: var(--brand-yellow); }
+        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+        /* ---------- Closing CTA ---------- */
+        .closing-cta { text-align: center; padding: 80px 20px; }
+        .closing-cta h2 { font-size: 30px; max-width: 620px; margin: 0 auto 14px; }
+        .closing-cta p.sub { color: var(--brand-ink-soft); margin-bottom: 28px; }
+        .closing-cta .disclaimer { font-size: 13px; color: var(--brand-ink-soft); margin-top: 18px; }
+
+        /* ---------- Landing footer (compact, distinct from site footer) ---------- */
+        .land-footer {
+            background: var(--brand-nav-dark); color: var(--brand-nav-text);
+            padding: 30px 0; text-align: center; font-size: 13px;
+        }
+        .land-footer img { height: 44px; margin-bottom: 10px; }
+        .land-footer p { opacity: 0.75; margin: 0; }
+    </style>
+</head>
+<body>
+
+    <!-- Sticky nav -->
+    <nav class="land-nav">
+        <div class="container">
+            <a href="#top" class="brand-mark"><img src="/images/app_logo_g.png" alt="Navigator+"> Navigator<span style="color:var(--brand-yellow)">+</span></a>
+            <ul class="land-links">
+                <li><a href="#features">Explore</a></li>
+                <li><a href="#how">How it works</a></li>
+                <li><a href="#why">Why it matters</a></li>
+            </ul>
+            <a href="/home" class="btn btn-brand">Enter Site</a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <div id="top" class="land-hero">
+        <div class="emoji-row">🚸 🚲 🛴 🚗</div>
+        <span class="land-eyebrow">Free road safety resource for Singapore's youth</span>
+        <h1>Cross safe? <em>Look</em>, don't guess.</h1>
+        <p class="lead">Navigator+ teaches pedestrians, cyclists, PMD riders and future drivers how to read the road — before a bad guess becomes a bad day.</p>
+        <div class="cta-row">
+            <a href="/home" class="btn btn-brand">Explore Navigator+ &rarr;</a>
+            <a href="#how" class="btn btn-brand-outline">See how it works</a>
+        </div>
+        <div class="scroll-hint">Scroll ↓</div>
+    </div>
+
+    <div class="container">
+
+        <!-- Mission strip -->
+        <div class="mission-strip">
+            <h2>The road doesn't wait for you to learn the hard way.</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="mission-item">
+                        <div class="glyph">📘</div>
+                        <h3>Know the rules first.</h3>
+                        <p>Clear, practical guidance for pedestrians, cyclists, PMD riders and drivers — drawn straight from SPF and LTA.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mission-item">
+                        <div class="glyph">📊</div>
+                        <h3>See the risk before it finds you.</h3>
+                        <p>Real Singapore data on why accidents happen — speeding, distraction, PMD misuse and more.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mission-item">
+                        <div class="glyph">🚨</div>
+                        <h3>Help, ready before it's needed.</h3>
+                        <p>Emergency hotlines and safety know-how, saved before you're ever in a crisis.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature grid -->
+        <div id="features" class="land-features">
+            <div class="section-tag-wrap">
+                <span class="section-label">Explore</span>
+                <h2>Everything a young road user needs</h2>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card-tile">
+                        <div class="icon">📘</div>
+                        <h5>Safety Guidelines</h5>
+                        <p>Practical, official tips for pedestrians, cyclists, PMD riders and passengers.</p>
+                        <a href="/guidelines">Read guidelines &rarr;</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-tile">
+                        <div class="icon">📊</div>
+                        <h5>Causes of Accidents</h5>
+                        <p>Understand why accidents happen in Singapore, backed by real data.</p>
+                        <a href="/causes">See the data &rarr;</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-tile card-tile-urgent">
+                        <div class="icon">🚨</div>
+                        <h5>Emergency Hotlines</h5>
+                        <p>Know exactly who to call if you witness or are involved in an accident.</p>
+                        <a href="/hotlines">View hotlines &rarr;</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-tile">
+                        <div class="icon">🎮</div>
+                        <h5>Interactive Game</h5>
+                        <p>Learn road safety the fun way — practice spotting hazards before you meet them for real.</p>
+                        <a href="/game">Play now &rarr;</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-tile">
+                        <div class="icon">✍️</div>
+                        <h5>Petitions & Advocacy</h5>
+                        <p>See how ordinary Singaporeans have pushed for safer roads.</p>
+                        <a href="/petitions">View petitions &rarr;</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-tile">
+                        <div class="icon">📰</div>
+                        <h5>News & Media</h5>
+                        <p>Stay current on Singapore's road safety campaigns and enforcement changes.</p>
+                        <a href="/newsNmedia">Read the news &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Highlight statement -->
+        <div id="why" class="highlight-block">
+            <p>Most road safety messaging talks <strong>at</strong> young people, not <strong>with</strong> them. Navigator+ is built specifically for how Singapore's youth actually get around — on foot, on wheels, and eventually behind the wheel.</p>
+            <span class="glow-caption">That's the whole point</span>
+        </div>
+
+        <!-- How it works -->
+        <div id="how" class="steps-section">
+            <h2>Three ways in. That's the site.</h2>
+            <p class="sub">No sign-up, no gatekeeping — just the information you need, when you need it.</p>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="step-card">
+                        <div class="step-num">1</div>
+                        <h3>Learn the rules</h3>
+                        <p>Read official pedestrian, cyclist, PMD and driver guidelines drawn from SPF and LTA.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="step-card">
+                        <div class="step-num">2</div>
+                        <h3>See the real risk</h3>
+                        <p>Explore the data behind Singapore's road accidents — and why they keep happening.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="step-card">
+                        <div class="step-num">3</div>
+                        <h3>Know who to call</h3>
+                        <p>Save the emergency hotlines, and see how others are pushing for safer roads.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Marquee -->
+    <div class="marquee-wrap">
+        <div class="marquee-track">
+            <span class="dot">Free & Open</span><span class="dot">Built for Singapore Youth</span><span class="dot">SPF & LTA Guidance</span><span class="dot">Pedestrians · Cyclists · PMD Riders · Drivers</span>
+            <span class="dot">Free & Open</span><span class="dot">Built for Singapore Youth</span><span class="dot">SPF & LTA Guidance</span><span class="dot">Pedestrians · Cyclists · PMD Riders · Drivers</span>
+        </div>
+    </div>
+
+    <!-- Closing CTA -->
+    <div class="closing-cta">
+        <h2>Your next trip out the door starts here.</h2>
+        <p class="sub">Free to use. No sign-up gymnastics. Just the road, explained.</p>
+        <a href="/home" class="btn btn-brand">Enter Navigator+ &rarr;</a>
+        <p class="disclaimer">Navigator+ is a youth-led education project — it informs, it doesn't replace official SPF or LTA guidance.</p>
+    </div>
+
+    <!-- Landing footer -->
+    <div class="land-footer">
+        <img src="/images/app_logo_footer.png" alt="Navigator+ logo">
+        <p>A student road safety initiative for Singapore &middot; Not an official government website</p>
+    </div>
+
+</body>
+</html>

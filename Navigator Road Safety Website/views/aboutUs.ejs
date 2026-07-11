@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us | Navigator +</title>
+    <%- include('partials/styles.ejs') %>
+    <style>
+        .about-card { background: white; border-radius: 18px; box-shadow: 0 4px 18px rgba(22,48,46,0.08); padding: 40px; }
+        .about-card p { color: var(--brand-ink-soft); line-height: 1.75; font-size: 16px; }
+        .mission-tile { text-align: center; }
+        .mission-tile .icon { font-size: 30px; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar.ejs', { page: 'about' }) %>
+
+    <div class="page-hero text-center">
+        <div class="container">
+            <h1 class="display-6">About Us</h1>
+            <p class="mx-auto">The team behind Navigator +.</p>
+        </div>
+    </div>
+
+    <div class="container my-4 mb-5">
+        <%- include('partials/readAloud.ejs') %>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="about-card" id="readable-content">
+                    <span class="section-label">Who we are</span>
+                    <p>
+                        Navigator + is a student project built by a group of Year 2 students from the
+                        Applied AI &amp; Data Analytics course at Republic Polytechnic. We started this
+                        as a way to put what we're learning about data and technology toward a problem
+                        that actually affects people our age — road safety.
+                    </p>
+                    <p>
+                        Singapore's road accident statistics kept coming up in our research, and a lot of
+                        them involve young people: pedestrians, cyclists, PMD riders, and new drivers.
+                        We wanted to build something that makes road safety information easier to find,
+                        easier to understand, and actually relevant to youth and children — not just
+                        another dense government PDF.
+                    </p>
+                    <p>
+                        That's what Navigator + is: a central place for road safety guidelines, real
+                        accident statistics, emergency hotlines, and ways to get involved, all pulled
+                        together and presented in a way that's meant for a younger audience to actually
+                        read and use.
+                    </p>
+
+                    <span class="section-label mt-4">Our goal</span>
+                    <p>
+                        Our aim is simple — make roads safer for youth and children in Singapore by
+                        making safety information more accessible, and by giving young people a clearer
+                        picture of the risks so they can make safer choices, whether they're walking,
+                        cycling, riding a PMD, or learning to drive.
+                    </p>
+
+                    <div class="row g-3 mt-4">
+                        <div class="col-md-4">
+                            <div class="card-tile mission-tile">
+                                <div class="icon">🎓</div>
+                                <h5>Student-built</h5>
+                                <p class="mb-0" style="font-size: 14px;">A Year 2 project from the Applied AI &amp; Data Analytics course at Republic Polytechnic.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card-tile mission-tile">
+                                <div class="icon">📊</div>
+                                <h5>Data-informed</h5>
+                                <p class="mb-0" style="font-size: 14px;">Every statistic on this site is sourced and cited from official public data.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card-tile mission-tile card-tile-urgent">
+                                <div class="icon">🧒</div>
+                                <h5>Youth-focused</h5>
+                                <p class="mb-0" style="font-size: 14px;">Built specifically with young pedestrians, cyclists, and new drivers in mind.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="source-note mt-4">
+                        Navigator + is an independent student project and is not an official government
+                        website. We link to and cite official sources — SPF, LTA, SCDF, and the Singapore
+                        Road Safety Council — throughout the site.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include('partials/footer.ejs') %>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png">
+<link rel="icon" href="/favicon.ico">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+    :root {
+        /* Primary accent (~10%) — urgency, primary CTAs, brand anchor moments */
+        --brand-red: #c9184a;
+        --brand-red-dark: #9c1c3e;
+        --brand-pink: #ff8fa3;
+        --brand-pink-light: #ffe4e9;
+
+        /* Secondary (~30%) — chrome, supporting sections, non-urgent info */
+        --brand-teal: #2f7a78;
+        --brand-teal-dark: #163f3d;
+        --brand-teal-light: #e1f0ef;
+
+        /* Small accent (used sparingly) — cautions, highlights, badges */
+        --brand-yellow: #f2b134;
+        --brand-yellow-dark: #a06f16;
+        --brand-yellow-light: #fdf1d8;
+
+        /* Neutral dominant (~60%) — backgrounds, surfaces, body text */
+        --brand-bg: #faf8f6;
+        --brand-surface: #ffffff;
+        --brand-ink: #2b2a2c;
+        --brand-ink-soft: #635d63;
+        --brand-nav-dark: #16302e;
+        --brand-nav-text: #eaf3f2;
+    }
+
+    body {
+        background-color: var(--brand-bg);
+        font-family: 'Inter', sans-serif;
+        color: var(--brand-ink);
+    }
+
+    h1, h2, h3, .display-heading {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 700;
+        color: var(--brand-red-dark);
+    }
+
+    a { color: var(--brand-red); }
+
+    /* Default hero uses the secondary (teal) color — reserves saturated red
+       for genuinely urgent pages via .page-hero-urgent (see hotlines.ejs) */
+    .page-hero {
+        background: linear-gradient(135deg, var(--brand-teal-dark), var(--brand-teal));
+        color: white;
+        padding: 55px 0;
+        margin-bottom: 40px;
+    }
+    .page-hero.page-hero-urgent {
+        background: linear-gradient(135deg, var(--brand-red-dark), var(--brand-red));
+    }
+
+    .page-hero h1 { color: white; margin-bottom: 10px; }
+    .page-hero p { color: var(--brand-teal-light); font-size: 17px; max-width: 700px; margin: 0 auto; }
+    .page-hero.page-hero-urgent p { color: var(--brand-pink-light); }
+
+    .btn-brand {
+        background-color: var(--brand-red);
+        border-color: var(--brand-red);
+        color: white;
+        padding: 10px 28px;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+    .btn-brand:hover { background-color: var(--brand-red-dark); border-color: var(--brand-red-dark); color: white; }
+
+    .btn-brand-outline {
+        background-color: transparent;
+        border: 2px solid white;
+        color: white;
+        padding: 9px 26px;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+    .btn-brand-outline:hover { background-color: white; color: var(--brand-teal-dark); }
+    .page-hero-urgent .btn-brand-outline:hover { color: var(--brand-red-dark); }
+
+    /* Secondary button — for non-urgent actions, uses the 30% teal */
+    .btn-brand-teal {
+        background-color: var(--brand-teal);
+        border-color: var(--brand-teal);
+        color: white;
+        padding: 10px 28px;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+    .btn-brand-teal:hover { background-color: var(--brand-teal-dark); border-color: var(--brand-teal-dark); color: white; }
+
+    .card-tile {
+        background: var(--brand-surface);
+        border-radius: 14px;
+        padding: 26px;
+        box-shadow: 0 3px 14px rgba(22, 48, 46, 0.08);
+        border-top: 4px solid var(--brand-teal);
+        height: 100%;
+    }
+    .card-tile h5 { color: var(--brand-teal-dark); font-weight: 700; }
+    .card-tile .icon { font-size: 34px; margin-bottom: 10px; }
+
+    /* Cards representing urgent/safety-critical content keep the red accent */
+    .card-tile.card-tile-urgent { border-top-color: var(--brand-red); }
+    .card-tile.card-tile-urgent h5 { color: var(--brand-red-dark); }
+
+    .section-label {
+        display: inline-block;
+        background: var(--brand-teal-light);
+        color: var(--brand-teal-dark);
+        font-weight: 700;
+        font-size: 12px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        padding: 5px 14px;
+        border-radius: 999px;
+        margin-bottom: 12px;
+    }
+
+    .source-note {
+        font-size: 13px;
+        color: var(--brand-ink-soft);
+        border-left: 3px solid var(--brand-teal);
+        padding-left: 12px;
+        margin-top: 8px;
+    }
+
+    /* Small yellow accent — reserved for cautions/notices, used sparingly */
+    .alert-caution {
+        background: var(--brand-yellow-light);
+        border: none;
+        border-left: 4px solid var(--brand-yellow);
+        border-radius: 12px;
+        color: var(--brand-ink);
+        padding: 16px 20px;
+    }
+    .alert-caution strong { color: var(--brand-yellow-dark); }
+</style>

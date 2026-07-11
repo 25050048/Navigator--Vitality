@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Hotlines | Navigator +</title>
+    <%- include('partials/styles.ejs') %>
+    <style>
+        .hotline-card { background: white; border-radius: 14px; padding: 22px; box-shadow: 0 3px 14px rgba(156,28,62,0.08); height: 100%; display: flex; flex-direction: column; }
+        .hotline-num { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 30px; color: var(--brand-red); }
+        .hotline-card.urgent { border: 2px solid var(--brand-red); }
+        .steps-card { background: white; border-radius: 14px; padding: 26px; box-shadow: 0 3px 14px rgba(156,28,62,0.08); }
+        .steps-card ol { padding-left: 20px; }
+        .steps-card li { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar.ejs', { page: 'hotlines' }) %>
+
+    <div class="page-hero page-hero-urgent text-center">
+        <div class="container">
+            <h1 class="display-6">Emergency Hotlines</h1>
+            <p class="mx-auto">Know these numbers before you need them. A calm, correct call can save a life.</p>
+        </div>
+    </div>
+
+    <div class="container mt-4 mb-5">
+
+        <%- include('partials/readAloud.ejs') %>
+
+        <div id="readable-content">
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="hotline-card urgent">
+                    <div class="hotline-num">999</div>
+                    <h6>Police Emergency</h6>
+                    <p>For crimes, road accidents involving injury, or any life-threatening situation requiring police response.</p>
+                    <p class="mb-0"><small>Can't call safely? SMS <strong>71999</strong> instead.</small></p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="hotline-card urgent">
+                    <div class="hotline-num">995</div>
+                    <h6>SCDF Ambulance / Fire</h6>
+                    <p>For life-threatening medical emergencies and fire incidents, including serious road accident injuries. Free from mobile and landline phones.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="hotline-card">
+                    <div class="hotline-num">6547 0000</div>
+                    <h6>Traffic Police Information Hotline</h6>
+                    <p>For reporting traffic-related matters and non-emergency accident enquiries.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="hotline-card">
+                    <div class="hotline-num">1800&#8209;255&#8209;0000</div>
+                    <h6>Non-Emergency Police Hotline</h6>
+                    <p>For non-urgent police matters that don't require an immediate 999 response.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="hotline-card">
+                    <div class="hotline-num">6262 6262</div>
+                    <h6>NurseFirst Helpline</h6>
+                    <p>For medical advice on non-emergency conditions and guidance on where to seek appropriate care.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="hotline-card">
+                    <div class="hotline-num">1800 202 6868</div>
+                    <h6>National Care Hotline</h6>
+                    <p>For emotional support if a road accident — yours or someone else's — has left you shaken or distressed.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="steps-card mb-4">
+            <h5>📍 If you witness or are involved in a road accident</h5>
+            <ol>
+                <li><strong>Check for danger first.</strong> Move to a safe spot away from moving traffic before doing anything else.</li>
+                <li><strong>Call for help.</strong> Dial 999 if anyone is injured or it's a serious collision; dial 995 if someone needs urgent medical attention.</li>
+                <li><strong>Give clear information</strong> — your location (street name, nearest landmark or postal code), what happened, and how many people are hurt.</li>
+                <li><strong>Stay on the line</strong> while responders gather details, and don't hang up until you're told to.</li>
+                <li><strong>Don't move injured persons</strong> unless they're in immediate danger — wait for trained responders.</li>
+                <li><strong>Report within 24 hours</strong> to the police if you're a driver involved in an accident, so an official report is on record.</li>
+            </ol>
+            <p class="source-note mb-0">Source: Singapore Civil Defence Force; Singapore Police Force public guidance</p>
+        </div>
+
+        <div class="alert-caution">
+            <strong>Please use emergency numbers responsibly.</strong> Misusing 995 or 999 for non-emergencies can delay help reaching someone who genuinely needs it — and may result in a penalty.
+        </div>
+        </div><!-- /#readable-content -->
+
+    </div>
+
+    <%- include('partials/footer.ejs') %>
+</body>
+</html>
