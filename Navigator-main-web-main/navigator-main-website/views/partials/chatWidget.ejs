@@ -1,0 +1,245 @@
+<!-- Floating chatbot button -->
+<button id="openChatButton" class="chat-float" aria-label="Open Navigator AI chat">💬</button>
+
+<!-- Chatbot popup -->
+<div id="chatPopup" class="chat-popup">
+    <div class="chat-header">
+        <div>
+            <h3>Navigator AI</h3>
+            <p>Road Safety Assistant</p>
+        </div>
+
+        <button id="closeChatButton" class="close-chat" aria-label="Close chat">×</button>
+    </div>
+
+    <div id="chatMessages" class="chat-messages">
+        <div class="message bot-message">
+            Hello! Ask me anything about road safety, pedestrians, cycling, PMDs, safe driving or road accidents.
+        </div>
+    </div>
+
+    <form id="chatForm" class="chat-input-area">
+        <input
+            type="text"
+            id="userInput"
+            placeholder="Ask a road-safety question..."
+            autocomplete="off"
+            required
+        >
+
+        <button type="submit" id="sendButton">Send</button>
+    </form>
+</div>
+
+<style>
+    .chat-float {
+        position: fixed;
+        right: 25px;
+        bottom: 25px;
+        width: 65px;
+        height: 65px;
+        border: none;
+        border-radius: 50%;
+        background-color: var(--brand-nav-dark);
+        color: white;
+        font-size: 30px;
+        cursor: pointer;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        z-index: 999;
+        transition: 0.3s;
+    }
+
+    .chat-float:hover {
+        background-color: var(--brand-red);
+        transform: scale(1.08);
+    }
+
+    .chat-popup {
+        position: fixed;
+        right: 25px;
+        bottom: 105px;
+        width: 360px;
+        height: 500px;
+        background-color: white;
+        border-radius: 15px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        display: none;
+        flex-direction: column;
+        z-index: 1000;
+    }
+
+    .chat-popup.open {
+        display: flex;
+    }
+
+    .chat-header {
+        background-color: var(--brand-nav-dark);
+        color: white;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .chat-header h3 {
+        margin: 0;
+        font-size: 19px;
+        color: white;
+    }
+
+    .chat-header p {
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: var(--brand-nav-text);
+    }
+
+    .close-chat {
+        border: none;
+        background: none;
+        color: white;
+        font-size: 28px;
+        cursor: pointer;
+    }
+
+    .chat-messages {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+        background-color: var(--brand-bg);
+    }
+
+    .message {
+        max-width: 78%;
+        padding: 10px 13px;
+        margin-bottom: 12px;
+        border-radius: 14px;
+        line-height: 1.4;
+        font-size: 14px;
+        white-space: pre-wrap;
+    }
+
+    .bot-message {
+        background-color: white;
+        color: var(--brand-ink);
+        margin-right: auto;
+        box-shadow: 0 1px 4px rgba(22,48,46,0.08);
+    }
+
+    .user-message {
+        background-color: var(--brand-teal);
+        color: white;
+        margin-left: auto;
+    }
+
+    .chat-input-area {
+        display: flex;
+        padding: 12px;
+        border-top: 1px solid #eee;
+        background-color: white;
+    }
+
+    #userInput {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        outline: none;
+    }
+
+    #userInput:focus {
+        border-color: var(--brand-teal);
+    }
+
+    #sendButton {
+        margin-left: 8px;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        background-color: var(--brand-red);
+        color: white;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    #sendButton:hover { background-color: var(--brand-red-dark); }
+
+    #sendButton:disabled {
+        background-color: #aaa;
+        cursor: not-allowed;
+    }
+
+    @media screen and (max-width: 500px) {
+        .chat-popup {
+            right: 10px;
+            bottom: 90px;
+            width: calc(100% - 20px);
+            height: 70vh;
+        }
+
+        .chat-float {
+            right: 15px;
+            bottom: 15px;
+        }
+    }
+</style>
+
+<script>
+    (function () {
+        const openChatButton = document.getElementById('openChatButton');
+        const closeChatButton = document.getElementById('closeChatButton');
+        const chatPopup = document.getElementById('chatPopup');
+        const chatForm = document.getElementById('chatForm');
+        const userInput = document.getElementById('userInput');
+        const chatMessages = document.getElementById('chatMessages');
+        const sendButton = document.getElementById('sendButton');
+
+        openChatButton.addEventListener('click', function () {
+            chatPopup.classList.add('open');
+            openChatButton.style.display = 'none';
+            userInput.focus();
+        });
+
+        closeChatButton.addEventListener('click', function () {
+            chatPopup.classList.remove('open');
+            openChatButton.style.display = 'block';
+        });
+
+        function addMessage(text, messageType) {
+            const message = document.createElement('div');
+            message.classList.add('message', messageType);
+            message.textContent = text;
+            chatMessages.appendChild(message);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return message;
+        }
+
+        chatForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const message = userInput.value.trim();
+            if (message === '') return;
+
+            addMessage(message, 'user-message');
+            userInput.value = '';
+            sendButton.disabled = true;
+
+            const loadingMessage = addMessage('Navigator AI is thinking...', 'bot-message');
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ message: message })
+                });
+                const data = await response.json();
+                loadingMessage.textContent = data.reply || 'Sorry, I could not answer that question.';
+            } catch (error) {
+                loadingMessage.textContent = 'Sorry, I could not connect to Navigator AI.';
+            }
+
+            sendButton.disabled = false;
+            userInput.focus();
+        });
+    })();
+</script>

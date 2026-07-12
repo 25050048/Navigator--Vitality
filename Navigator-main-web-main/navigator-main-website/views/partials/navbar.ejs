@@ -1,0 +1,122 @@
+<!-- Floating glass pill navbar -->
+<nav class="nv-bar" id="mainNav">
+    <div class="nv-inner">
+        <a href="/" class="nv-brand">
+            <img src="/images/app_logo_g.png" alt="Navigator+" height="30">
+            <span>Navigator<em>+</em></span>
+        </a>
+        <ul class="nv-links">
+            <li><a href="/guidelines" class="<%= typeof page !== 'undefined' && page === 'guidelines' ? 'nv-active' : '' %>">Guidelines</a></li>
+            <li><a href="/causes" class="<%= typeof page !== 'undefined' && page === 'causes' ? 'nv-active' : '' %>">Causes</a></li>
+            <li><a href="/hotlines" class="<%= typeof page !== 'undefined' && page === 'hotlines' ? 'nv-active' : '' %>">Hotlines</a></li>
+            <li><a href="/petitions" class="<%= typeof page !== 'undefined' && page === 'petitions' ? 'nv-active' : '' %>">Petitions</a></li>
+            <li><a href="/newsNmedia" class="<%= typeof page !== 'undefined' && page === 'news' ? 'nv-active' : '' %>">News</a></li>
+            <li><a href="/game" class="<%= typeof page !== 'undefined' && page === 'game' ? 'nv-active' : '' %>">Game</a></li>
+            <li><a href="/about" class="<%= typeof page !== 'undefined' && page === 'about' ? 'nv-active' : '' %>">About</a></li>
+        </ul>
+        <a href="/home" class="nv-cta">Enter Site</a>
+    </div>
+</nav>
+
+<style>
+    body { padding-top: 0; }
+
+    .nv-bar {
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        width: calc(100% - 40px);
+        max-width: 1080px;
+    }
+
+    .nv-inner {
+        display: flex;
+        align-items: center;
+        gap: clamp(12px, 2.5vw, 32px);
+        padding: 10px 12px 10px 18px;
+        border-radius: 999px;
+        background: rgba(255, 252, 245, 0.78);
+        border: 1px solid rgba(15, 42, 30, 0.1);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 12px 44px -16px rgba(15, 42, 30, 0.28);
+        transition: background 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .nv-bar.scrolled .nv-inner {
+        background: rgba(255, 252, 245, 0.94);
+        box-shadow: 0 14px 50px -16px rgba(15, 42, 30, 0.38);
+    }
+
+    .nv-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        text-decoration: none;
+        color: var(--ink);
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 1.05rem;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .nv-brand em { font-style: normal; color: var(--brand-red); }
+    .nv-brand:hover { color: var(--ink); text-decoration: none; }
+
+    .nv-links {
+        display: flex;
+        gap: clamp(8px, 2vw, 22px);
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        flex: 1;
+        justify-content: center;
+    }
+    .nv-links a {
+        color: var(--ink-muted);
+        text-decoration: none;
+        font-family: var(--font-display);
+        font-size: 0.88rem;
+        font-weight: 500;
+        transition: color 0.2s ease;
+        white-space: nowrap;
+    }
+    .nv-links a:hover,
+    .nv-links a.nv-active { color: var(--brand-red); }
+    .nv-links a.nv-active { font-weight: 700; }
+
+    .nv-cta {
+        white-space: nowrap;
+        flex-shrink: 0;
+        background: var(--ink);
+        color: #fff !important;
+        text-decoration: none;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 0.88rem;
+        padding: 9px 20px;
+        border-radius: 999px;
+        transition: background 0.25s ease, transform 0.25s ease;
+    }
+    .nv-cta:hover { background: var(--brand-red); transform: translateY(-1px); color: #fff; text-decoration: none; }
+
+    @media (max-width: 860px) {
+        .nv-links { display: none; }
+        .nv-bar { width: calc(100% - 24px); }
+    }
+
+    /* Push page content below the floating nav */
+    .page-hero, .land-hero { margin-top: 0; }
+</style>
+
+<script>
+    (function() {
+        const nav = document.getElementById('mainNav');
+        window.addEventListener('scroll', function() {
+            nav.classList.toggle('scrolled', window.scrollY > 30);
+        }, { passive: true });
+    })();
+</script>

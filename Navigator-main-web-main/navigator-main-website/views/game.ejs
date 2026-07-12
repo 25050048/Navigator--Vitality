@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road Safety Game — Zeb's Crossing | Navigator+</title>
+    <meta name="description" content="Play Zeb's Crossing — a 3D road safety game where you learn to cross roads safely. Test your instincts and earn a certificate!">
+    <%- include('partials/styles.ejs') %>
+    <style>
+        body { padding-top: 86px; }
+
+        /* ---- Game Section ---- */
+        .game-section { margin-bottom: 56px; }
+
+        .game-iframe-wrap {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto 40px;
+            border-radius: var(--radius-panel);
+            overflow: hidden;
+            box-shadow: 0 20px 60px -20px rgba(15,42,30,0.25);
+            border: 2px solid var(--line);
+            background: #111;
+        }
+        .game-iframe-wrap iframe {
+            display: block;
+            width: 100%;
+            height: 560px;
+            border: none;
+        }
+        .game-fullscreen-btn {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .game-fullscreen-btn:hover {
+            background: rgba(0,0,0,0.85);
+            transform: translateY(-2px);
+        }
+
+        /* ---- How To Play ---- */
+        .how-to-play {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-panel);
+            padding: 36px;
+            box-shadow: 0 4px 24px rgba(15,42,30,0.07);
+        }
+        .how-to-play h3 {
+            font-family: var(--font-display);
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+        }
+        .step-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+        .step-card {
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .step-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -10px rgba(15,42,30,0.15);
+        }
+        .step-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .step-card h6 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+        .step-card p {
+            font-size: 13px;
+            color: var(--ink-muted);
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* ---- Key bindings ---- */
+        .key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            padding: 0 8px;
+            background: var(--ink);
+            color: #fff;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+            margin: 0 2px;
+        }
+
+        /* ---- Features Grid ---- */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 32px;
+        }
+        .feature-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-panel);
+            padding: 28px;
+            box-shadow: 0 4px 24px rgba(15,42,30,0.07);
+            transition: transform 0.4s cubic-bezier(0.22,1,0.36,1), box-shadow 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+        }
+        .feature-card:nth-child(1)::before { background: linear-gradient(90deg, var(--brand-teal), var(--brand-teal-deep)); }
+        .feature-card:nth-child(2)::before { background: linear-gradient(90deg, var(--brand-red), var(--brand-red-dark)); }
+        .feature-card:nth-child(3)::before { background: linear-gradient(90deg, var(--brand-amber), var(--brand-yellow-dark)); }
+        .feature-card:nth-child(4)::before { background: linear-gradient(90deg, #6366f1, #4f46e5); }
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 50px -20px rgba(15,42,30,0.2);
+        }
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 14px;
+            display: block;
+        }
+        .feature-card h5 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+        .feature-card p {
+            font-size: 14px;
+            color: var(--ink-muted);
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        /* ---- Safety Tips Banner ---- */
+        .tips-banner {
+            background: linear-gradient(135deg, rgba(29,179,168,0.08) 0%, rgba(201,24,74,0.06) 100%);
+            border: 1px solid rgba(29,179,168,0.15);
+            border-radius: var(--radius-panel);
+            padding: 32px;
+            margin-top: 48px;
+        }
+        .tips-banner h4 {
+            font-family: var(--font-display);
+            margin-bottom: 16px;
+        }
+        .tips-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 10px;
+        }
+        .tips-list li {
+            font-size: 14px;
+            color: var(--ink);
+            padding: 10px 14px;
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            line-height: 1.5;
+        }
+        .tips-list li .tip-emoji {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        @media (max-width: 768px) {
+            .game-iframe-wrap iframe { height: 400px; }
+            .step-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 480px) {
+            .game-iframe-wrap iframe { height: 320px; }
+            .step-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar.ejs', { page: 'game' }) %>
+
+    <div class="page-hero text-center">
+        <div class="container">
+            <h1 class="display-6">🎮 Zeb's Crossing</h1>
+            <p class="mx-auto">A 3D road safety game where you learn to cross roads safely. Test your instincts, dodge traffic, and earn a certificate!</p>
+        </div>
+    </div>
+
+    <div class="container game-section">
+
+        <!-- Embedded Game -->
+        <div class="game-iframe-wrap" id="gameContainer">
+            <button class="game-fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                Fullscreen
+            </button>
+            <iframe src="/RoadSafetyGame/index.html" title="Zeb's Crossing — Road Safety Game" allowfullscreen loading="lazy"></iframe>
+        </div>
+
+        <!-- How To Play -->
+        <div class="how-to-play" id="readable-content">
+            <h3>🕹️ How to Play</h3>
+            <div class="step-grid">
+                <div class="step-card">
+                    <span class="step-icon">🏃</span>
+                    <h6>Move Around</h6>
+                    <p>Use <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> or <span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span> to move your character</p>
+                </div>
+                <div class="step-card">
+                    <span class="step-icon">🚦</span>
+                    <h6>Wait for Green</h6>
+                    <p>At traffic lights, press <span class="key">E</span> and wait for the light to turn green before crossing</p>
+                </div>
+                <div class="step-card">
+                    <span class="step-icon">🦓</span>
+                    <h6>Zebra Crossings</h6>
+                    <p>Stay beyond the striped lane and wait for the car to fully stop before crossing</p>
+                </div>
+                <div class="step-card">
+                    <span class="step-icon">⚠️</span>
+                    <h6>Stay Safe</h6>
+                    <p>Stepping onto a road early or outside marked lanes is fatal — stay alert!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Features -->
+        <div class="features-grid">
+            <div class="feature-card">
+                <span class="feature-icon">🌍</span>
+                <h5>3D Environment</h5>
+                <p>Navigate realistic Singapore-inspired streets with traffic lights, zebra crossings, and moving vehicles.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🧠</span>
+                <h5>Safety Quizzes</h5>
+                <p>Answer road safety questions from Ranger Zeb as you play. Get them right to keep your streak going!</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🏆</span>
+                <h5>Earn Certificates</h5>
+                <p>Score high enough and unlock a unique certificate with a one-of-a-kind verification code.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📱</span>
+                <h5>Mobile Friendly</h5>
+                <p>Play on desktop or mobile with on-screen touch controls. No download or install needed.</p>
+            </div>
+        </div>
+
+        <!-- Safety Tips -->
+        <div class="tips-banner">
+            <h4>💡 Real-World Safety Tips from the Game</h4>
+            <ul class="tips-list">
+                <li><span class="tip-emoji">👀</span> Always look both ways before crossing — even on one-way streets</li>
+                <li><span class="tip-emoji">🚶</span> Use pedestrian crossings wherever they are available</li>
+                <li><span class="tip-emoji">🔴</span> Never cross at a red light, even if no cars are in sight</li>
+                <li><span class="tip-emoji">📵</span> Put your phone away while walking near roads</li>
+                <li><span class="tip-emoji">🌙</span> Wear light or reflective clothing when walking at night</li>
+                <li><span class="tip-emoji">🚗</span> Make eye contact with drivers before stepping onto a crossing</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <%- include('partials/footer.ejs') %>
+
+    <script>
+        function toggleFullscreen() {
+            const container = document.getElementById('gameContainer');
+            const btn = document.getElementById('fullscreenBtn');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    console.log('Fullscreen not supported:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        document.addEventListener('fullscreenchange', () => {
+            const btn = document.getElementById('fullscreenBtn');
+            if (document.fullscreenElement) {
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Exit Fullscreen';
+            } else {
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Fullscreen';
+            }
+        });
+    </script>
+</body>
+</html>

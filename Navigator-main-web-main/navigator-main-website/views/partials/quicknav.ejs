@@ -1,0 +1,135 @@
+<!-- Quick Navigation Buttons -->
+<section class="quicknav-section">
+    <div class="container">
+        <p class="quicknav-label">Explore Navigator+</p>
+        <div class="quicknav-grid">
+            <a href="/home" class="quicknav-btn">
+                <span class="quicknav-icon">🏠</span>
+                <span>Home</span>
+            </a>
+            <a href="/guidelines" class="quicknav-btn">
+                <span class="quicknav-icon">📘</span>
+                <span>Safety Guidelines</span>
+            </a>
+            <a href="/causes" class="quicknav-btn">
+                <span class="quicknav-icon">📊</span>
+                <span>Causes of Accidents</span>
+            </a>
+            <a href="/hotlines" class="quicknav-btn quicknav-btn-urgent">
+                <span class="quicknav-icon">🚨</span>
+                <span>Emergency Hotlines</span>
+            </a>
+            <a href="/petitions" class="quicknav-btn">
+                <span class="quicknav-icon">✍️</span>
+                <span>Petitions & Advocacy</span>
+            </a>
+            <a href="/newsNmedia" class="quicknav-btn">
+                <span class="quicknav-icon">📰</span>
+                <span>News & Media</span>
+            </a>
+            <a href="/game" class="quicknav-btn">
+                <span class="quicknav-icon">🎮</span>
+                <span>Road Safety Game</span>
+            </a>
+            <a href="/chatbox" class="quicknav-btn">
+                <span class="quicknav-icon">🤖</span>
+                <span>Navigator AI</span>
+            </a>
+            <a href="/about" class="quicknav-btn">
+                <span class="quicknav-icon">ℹ️</span>
+                <span>About Us</span>
+            </a>
+            <a href="/contactUs" class="quicknav-btn">
+                <span class="quicknav-icon">✉️</span>
+                <span>Contact Us</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<style>
+    .quicknav-section {
+        background: linear-gradient(180deg, var(--paper) 0%, rgba(29,179,168,0.06) 100%);
+        border-top: 1px solid var(--line);
+        padding: 50px 24px 56px;
+        text-align: center;
+    }
+
+    .quicknav-label {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--brand-teal-deep);
+        margin-bottom: 28px;
+        display: inline-block;
+        background: rgba(29,179,168,0.1);
+        padding: 5px 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(29,179,168,0.2);
+    }
+
+    .quicknav-grid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .quicknav-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 22px;
+        border-radius: 999px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        color: var(--ink);
+        text-decoration: none;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 0.88rem;
+        transition: transform 0.3s cubic-bezier(0.22,1,0.36,1),
+                    box-shadow 0.3s ease,
+                    border-color 0.3s ease,
+                    background 0.3s ease;
+        white-space: nowrap;
+    }
+
+    .quicknav-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 32px -12px rgba(15,42,30,0.3);
+        border-color: var(--brand-teal);
+        color: var(--ink);
+        text-decoration: none;
+        background: rgba(29,179,168,0.06);
+    }
+
+    .quicknav-btn-urgent {
+        border-color: rgba(201,24,74,0.25);
+        background: rgba(201,24,74,0.04);
+    }
+    .quicknav-btn-urgent:hover {
+        border-color: var(--brand-red);
+        background: rgba(201,24,74,0.08);
+        box-shadow: 0 12px 32px -12px rgba(201,24,74,0.25);
+    }
+
+    .quicknav-icon {
+        font-size: 1.1rem;
+        line-height: 1;
+    }
+
+    @media (max-width: 600px) {
+        .quicknav-btn {
+            padding: 10px 16px;
+            font-size: 0.82rem;
+        }
+        .quicknav-grid {
+            gap: 8px;
+        }
+    }
+</style>

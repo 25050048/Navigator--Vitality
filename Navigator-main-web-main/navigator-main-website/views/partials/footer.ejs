@@ -1,0 +1,156 @@
+<%- include('quicknav.ejs') %>
+<footer class="site-footer">
+    <div class="container">
+        <div class="row gy-5">
+            <div class="col-md-4">
+                <a href="/" class="footer-brand">
+                    <img src="/images/app_logo_footer.png" height="60" alt="Navigator + logo">
+                    <span>Navigator<em>+</em></span>
+                </a>
+                <p class="footer-tagline">Helping Singapore's youth understand road safety, one street at a time.</p>
+            </div>
+            <div class="col-md-4">
+                <h6 class="footer-heading">Quick Links</h6>
+                <ul class="list-unstyled footer-links">
+                    <li><a href="/about">About Us</a></li>
+                    <li><a href="/guidelines">Road Safety Guidelines</a></li>
+                    <li><a href="/hotlines">Emergency Hotlines</a></li>
+                    <li><a href="/causes">Causes of Accidents</a></li>
+                    <li><a href="/petitions">Petitions</a></li>
+                    <li><a href="/contactUs">Contact Us</a></li>
+                    <li><a href="/game">Game</a></li>
+                    <li><a href="/naviapp">Navigator+ App</a></li>
+                    <li><a href="/privacy-policy">Privacy Policy</a></li>
+                    <li><a href="/terms-of-use">Terms of Use</a></li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h6 class="footer-heading">Learn More From</h6>
+                <ul class="list-unstyled footer-links">
+                    <li><a href="https://www.srsc.org.sg/" target="_blank" rel="noopener">Singapore Road Safety Council</a></li>
+                    <li><a href="https://www.police.gov.sg/Knowledge-Hub/Traffic/Road-Safety-Tips" target="_blank" rel="noopener">SPF Road Safety Tips</a></li>
+                    <li><a href="https://roads.sg/" target="_blank" rel="noopener">ROADS.sg</a></li>
+                    <li><a href="https://onemotoring.lta.gov.sg/content/onemotoring/home/driving/road_safety_and_vehicle_rules/road-safety.html" target="_blank" rel="noopener">LTA Road Safety</a></li>
+                    <li><a href="https://www.mot.gov.sg/" target="_blank" rel="noopener">Ministry of Transport</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-divider"></div>
+
+        <!-- Footer CTA Buttons -->
+        <div class="footer-cta-row">
+            <a href="https://navigator-main-9cm8xprvr-davis1303.vercel.app/home" target="_blank" rel="noopener" class="footer-cta-btn footer-cta-primary">
+                🌐 Main Website
+            </a>
+            <a href="/navigator-plus_latest.html" target="_blank" rel="noopener" class="footer-cta-btn footer-cta-secondary">
+                📲 Download App
+            </a>
+            <a href="/game" class="footer-cta-btn footer-cta-secondary">
+                🎮 Play Game
+            </a>
+            <a href="/contactUs" class="footer-cta-btn footer-cta-secondary">
+                ✉️ Contact Us
+            </a>
+        </div>
+
+        <p class="footer-copy">&copy; 2026 Navigator+ — a youth road safety education project &middot; Not an official government website &middot; <a href="/privacy-policy">Privacy Policy</a> &middot; <a href="/terms-of-use">Terms of Use</a></p>
+    </div>
+</footer>
+
+<style>
+    .site-footer {
+        background: var(--ink);
+        color: var(--brand-nav-text);
+        padding: 60px 0 30px;
+        margin-top: 60px;
+        position: relative;
+        overflow: hidden;
+    }
+    .site-footer::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at 0% 100%, rgba(29,179,168,0.12) 0%, transparent 55%);
+        pointer-events: none;
+    }
+
+    .footer-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: white;
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-bottom: 14px;
+    }
+    .footer-brand em { font-style: normal; color: var(--brand-teal); }
+    .footer-brand:hover { color: white; text-decoration: none; }
+
+    .footer-tagline {
+        color: rgba(216, 237, 233, 0.7);
+        font-size: 14px;
+        line-height: 1.6;
+        margin-top: 10px;
+    }
+
+    .footer-heading {
+        font-family: var(--font-display);
+        color: var(--brand-teal);
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 18px;
+    }
+
+    .footer-links li { margin-bottom: 9px; }
+    .footer-links a {
+        color: rgba(216, 237, 233, 0.75);
+        text-decoration: none;
+        font-size: 14px;
+        transition: color 0.2s ease;
+    }
+    .footer-links a:hover { color: var(--brand-teal); }
+
+    .footer-divider {
+        border-top: 1px solid rgba(255,255,255,0.08);
+        margin: 40px 0 22px;
+    }
+
+    .footer-copy {
+        text-align: center;
+        font-size: 13px;
+        color: rgba(216,237,233,0.5);
+        margin: 0;
+    }
+    .footer-copy a { color: rgba(216,237,233,0.6); text-decoration: underline; }
+    .footer-copy a:hover { color: var(--brand-teal); }
+
+    .footer-cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 14px;
+        margin-bottom: 28px;
+    }
+    .footer-cta-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: transform 0.18s ease;
+    }
+    .footer-cta-btn:hover { transform: translateY(-2px); text-decoration: none; }
+    .footer-cta-primary { background: var(--brand-teal); color: #fff; }
+    .footer-cta-primary:hover { color: #fff; }
+    .footer-cta-secondary { background: rgba(255,255,255,0.08); color: rgba(216,237,233,0.9); border: 1px solid rgba(255,255,255,0.15); }
+    .footer-cta-secondary:hover { color: var(--brand-teal); }
+</style>
+
+<%- include('chatWidget.ejs') %>
